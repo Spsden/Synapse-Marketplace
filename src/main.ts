@@ -11,6 +11,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 /**
  * Bootstrap the NestJS application.
  */
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 

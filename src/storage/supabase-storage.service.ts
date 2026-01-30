@@ -103,6 +103,17 @@ export class SupabaseStorageService extends StorageService {
 
     const actualBucket = bucket || this.pluginsBucket;
 
+//quite a big problem here.
+// so when request comnes to generate a signed url for a plugin from bucket 
+// this.pluginsBucket, the url formed is 
+// ""https://vdgiktjrprjxfkrrmjdp.supabase.co/storage/v1/object/sign/plugins/plugins/com.synapse.test/v1.0.0/plugin.synx""
+// two plugins i.e plugins/plugins in the url
+
+// but for
+
+
+
+
     try {
       // Use Supabase REST API to create signed URL
       const url = SupabaseUrls.getSignUrl(this.projectUrl);

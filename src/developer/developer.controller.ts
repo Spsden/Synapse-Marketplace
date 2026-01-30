@@ -1,4 +1,4 @@
-import { Controller, Post, UseInterceptors, UploadedFile, UsePipes, ValidationPipe, Body } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, UsePipes, ValidationPipe, Body, Param } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { DeveloperService } from './developer.service';

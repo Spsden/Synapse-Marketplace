@@ -232,63 +232,63 @@ export class PluginsService {
   /**
    * Submits a plugin with storage upload.
    */
-  async submitPluginWithStorage(
-    file: Express.Multer.File,
-    packageId: string,
-    manifest: Record<string, any>,
-    jsCode: string,
-    name: string,
-    description: string,
-    author: string,
-    minAppVersion: string,
-  ): Promise<PluginDetailResponse> {
-    this.logger.log(`Submitting plugin ${packageId} with storage upload`);
+  // async submitPluginWithStorage(
+  //   file: Express.Multer.File,
+  //   packageId: string,
+  //   manifest: Record<string, any>,
+  //   jsCode: string,
+  //   name: string,
+  //   description: string,
+  //   author: string,
+  //   minAppVersion: string,
+  // ): Promise<PluginDetailResponse> {
+  //   this.logger.log(`Submitting plugin ${packageId} with storage upload`);
 
-    const version = manifest.version || '1.0.0';
+  //   const version = manifest.version || '1.0.0';
 
-    // Check for duplicates before any storage operations
-    const plugin = await this.pluginsRepository.findByPackageId(packageId);
-    if (plugin) {
-      const existing = await this.versionsRepository.findByPluginIdAndVersion(
-        plugin.id,
-        version,
-      );
-      if (existing) {
-        this.logger.warn(`Version ${version} already exists for plugin ${packageId}`);
-        throw new VersionConflictException(packageId, version);
-      }
-    }
+  //   // Check for duplicates before any storage operations
+  //   const plugin = await this.pluginsRepository.findByPackageId(packageId);
+  //   if (plugin) {
+  //     const existing = await this.versionsRepository.findByPluginIdAndVersion(
+  //       plugin.id,
+  //       version,
+  //     );
+  //     if (existing) {
+  //       this.logger.warn(`Version ${version} already exists for plugin ${packageId}`);
+  //       throw new VersionConflictException(packageId, version);
+  //     }
+  //   }
 
-    // Upload artifact to storage
-    const uploadResult = await this.storageService.uploadArtifact(
-      file.buffer,
-      file.mimetype,
-      packageId,
-      version,
-    );
-    this.logger.log(`Uploaded artifact to TEMP storage: ${uploadResult.tempPath}`);
+  //   // Upload artifact to storage
+  //   const uploadResult = await this.storageService.uploadArtifact(
+  //     file.buffer,
+  //     file.mimetype,
+  //     packageId,
+  //     version,
+  //   );
+  //   this.logger.log(`Uploaded artifact to TEMP storage: ${uploadResult.tempPath}`);
 
-    // Create database records
-    return await this.submitPlugin(
-      packageId,
-      name,
-      description,
-      author,
-      undefined, // iconKey - will be set separately if needed
-      undefined, // category
-      undefined, // tags
-      undefined, // sourceUrl
-      version,
-      manifest,
-      minAppVersion,
-      undefined, // releaseNotes
-      uploadResult.storagePath,
-      uploadResult.bucket,
-      uploadResult.tempPath,
-      uploadResult.fileSizeBytes,
-      uploadResult.checksumSha256,
-    );
-  }
+  //   // Create database records
+  //   return await this.submitPlugin(
+  //     packageId,
+  //     name,
+  //     description,
+  //     author,
+  //     undefined, // iconKey - will be set separately if needed
+  //     undefined, // category
+  //     undefined, // tags
+  //     undefined, // sourceUrl
+  //     version,
+  //     manifest,
+  //     minAppVersion,
+  //     undefined, // releaseNotes
+  //     uploadResult.storagePath,
+  //     uploadResult.bucket,
+  //     uploadResult.tempPath,
+  //     uploadResult.fileSizeBytes,
+  //     uploadResult.checksumSha256,
+  //   );
+  // }
 
   /**
    * Retrieves all versions of a plugin.
@@ -387,8 +387,14 @@ export class PluginsService {
     let downloadUrl: string | null = null;
     let expiresAt: number | null = null;
 
-    const storagePath = version.storagePath;
-    const storageBucket = version.storageBucket;
+   
+
+    let storagePath = version.storagePath;
+    let storageBucket = version.storageBucket;
+
+     if(version.status === PluginStatus.SUBMITTED.toString()) {
+      storagePath = version.tempStoragePath;
+    }
 
     if (storagePath && storageBucket) {
       try {

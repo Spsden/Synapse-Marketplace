@@ -57,6 +57,8 @@ export class DeveloperService {
       artifactUploadResult: null,
     };
 
+    console.log("kanak")
+
     try {
       // 1. Extract and validate the .synx package
       const pkg = await this.synxPackageService.extractPackage(file.buffer);
