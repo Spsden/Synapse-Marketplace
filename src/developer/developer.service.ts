@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { PluginsService } from '../plugins/plugins.service';
 import { SynxPackageService } from '../storage/synx-package.service';
 import { StorageService } from '../storage/storage.service';
 import { PluginDetailResponse } from '../common/dto/plugin-detail-response.dto';
+import { OAuthClientsRepository } from '../oauth/oauth-clients.repository';
+import { OAuthProvider } from '../common/enums/oauth-provider.enum';
 
 // Extend Express namespace for Multer types
 declare global {
@@ -35,6 +37,7 @@ export class DeveloperService {
     private readonly pluginsService: PluginsService,
     private readonly synxPackageService: SynxPackageService,
     private readonly storageService: StorageService,
+    private readonly oauthClientsRepository: OAuthClientsRepository,
   ) {}
 
   /**
@@ -164,6 +167,124 @@ export class DeveloperService {
   private clearState(state: PartialUploadState): void {
     state.uploadedIconKey = null;
     state.artifactUploadResult = null;
+  }
+
+  // ============================================================
+  // OAuth Credentials Management Methods
+  // ============================================================
+
+  /**
+   * Submit OAuth credentials for a plugin.
+   */
+  async submitOAuthCredentials(body: {
+    plugin_id: string;
+    provider: OAuthProvider;
+    client_id: string;
+    client_secret: string;
+    redirect_url: string;
+    scopes?: string[];
+    created_by: string;
+  }) {
+    // Validate plugin exists
+    const plugin = await this.pluginsService.findByPackageId(body.plugin_id);
+    if (!plugin) {
+      throw new HttpException('Plugin not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Check if credentials already exist for this plugin/provider
+    const existing = await this.oauthClientsRepository.findByPluginAndProvider(
+      plugin.id,
+      body.provider,
+    );
+    if (existing) {
+      throw new HttpException(
+        'OAuth credentials already exist for this plugin and provider',
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    // Create credentials
+    const credentials = await this.oauthClientsRepository.create({
+      pluginId: plugin.id,
+      provider: body.provider,
+      clientId: body.client_id,
+      clientSecret: body.client_secret,
+      redirectUrl: body.redirect_url,
+      scopes: body.scopes || [],
+      createdBy: body.created_by,
+    });
+
+    this.logger.log(
+      `Created OAuth credentials for plugin ${plugin.id} and provider ${body.provider}`,
+    );
+
+    // Return without the secret
+    return {
+      id: credentials.id,
+      plugin_id: credentials.pluginId,
+      provider: credentials.provider,
+      client_id: credentials.clientId,
+      redirect_url: credentials.redirectUrl,
+      scopes: credentials.scopes,
+      is_active: credentials.isActive,
+      created_at: credentials.createdAt,
+    };
+  }
+
+  /**
+   * Get OAuth credentials for a plugin.
+   */
+  async getOAuthCredentials(pluginId: string) {
+    const credentials = await this.oauthClientsRepository.findByPluginId(pluginId);
+
+    // Return without the secret
+    return credentials.map((cred) => ({
+      id: cred.id,
+      plugin_id: cred.pluginId,
+      provider: cred.provider,
+      client_id: cred.clientId,
+      redirect_url: cred.redirectUrl,
+      scopes: cred.scopes,
+      is_active: cred.isActive,
+      created_at: cred.createdAt,
+      updated_at: cred.updatedAt,
+    }));
+  }
+
+  /**
+   * Update OAuth credentials.
+   */
+  async updateOAuthCredentials(
+    credentialId: string,
+    body: {
+      client_id?: string;
+      client_secret?: string;
+      redirect_url?: string;
+      scopes?: string[];
+      is_active?: boolean;
+    },
+  ) {
+    const updated = await this.oauthClientsRepository.update(credentialId, body);
+
+    // Return without the secret
+    return {
+      id: updated.id,
+      plugin_id: updated.pluginId,
+      provider: updated.provider,
+      client_id: updated.clientId,
+      redirect_url: updated.redirectUrl,
+      scopes: updated.scopes,
+      is_active: updated.isActive,
+      updated_at: updated.updatedAt,
+    };
+  }
+
+  /**
+   * Deactivate OAuth credentials.
+   */
+  async deactivateOAuthCredentials(credentialId: string): Promise<void> {
+    await this.oauthClientsRepository.deactivate(credentialId);
+    this.logger.log(`Deactivated OAuth credentials: ${credentialId}`);
   }
 }
 
