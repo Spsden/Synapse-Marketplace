@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
+import { randomBytes, createCipheriv, createDecipheriv, CipherGCM, DecipherGCM } from 'crypto';
 
 /**
  * Configuration for encryption algorithms and key derivation.
@@ -88,7 +88,7 @@ export class VaultService {
         this.config.algorithm,
         this.encryptionKey,
         iv
-      );
+      ) as CipherGCM;
 
       // Encrypt the data
       let encrypted = cipher.update(plaintext, 'utf8', 'base64');
@@ -144,7 +144,7 @@ export class VaultService {
         this.config.algorithm,
         this.encryptionKey,
         iv
-      );
+      ) as DecipherGCM;
 
       // Set authentication tag BEFORE decryption (required for GCM)
       decipher.setAuthTag(authTag);
