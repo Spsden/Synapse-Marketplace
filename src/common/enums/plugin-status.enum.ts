@@ -14,4 +14,7 @@ export enum PluginStatus {
 
   /** Plugin was rejected during review due to security or policy violations. */
   REJECTED = 'REJECTED',
+
+  /** Plugin has been deleted by an administrator. */
+  DELETED = 'DELETED',
 }

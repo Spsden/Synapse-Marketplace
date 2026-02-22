@@ -260,6 +260,38 @@ export class PluginVersionsRepository {
   }
 
   /**
+   * Delete a plugin version by ID.
+   */
+  async delete(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('plugin_versions')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to delete plugin version: ${error.message}`);
+    }
+
+    this.logger.log(`Deleted plugin version with ID: ${id}`);
+  }
+
+  /**
+   * Delete all versions for a specific plugin.
+   */
+  async deleteByPluginId(pluginId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('plugin_versions')
+      .delete()
+      .eq('plugin_id', pluginId);
+
+    if (error) {
+      throw new Error(`Failed to delete plugin versions by plugin ID: ${error.message}`);
+    }
+
+    this.logger.log(`Deleted all plugin versions for plugin ID: ${pluginId}`);
+  }
+
+  /**
    * Map database row to PluginVersion entity.
    */
   private mapToEntity(data: any): PluginVersion {
