@@ -329,6 +329,71 @@ export class PluginsService {
   }
 
   /**
+   * Deletes a plugin and all its associated versions with full storage cleanup.
+   * This is a hard delete operation that removes:
+   * - All plugin version artifacts from storage
+   * - Plugin icon from storage
+   * - All plugin version records from database
+   * - The plugin record from database
+   */
+  async deletePlugin(packageId: string): Promise<void> {
+    this.logger.log(`Deleting plugin ${packageId}`);
+
+    // Get the plugin
+    const plugin = await this.pluginsRepository.findByPackageId(packageId);
+    if (!plugin) {
+      throw new ResourceNotFoundException('Plugin', 'packageId', packageId);
+    }
+
+    // Get all versions for storage cleanup
+    const versions = await this.versionsRepository.findByPluginIdOrderByCreatedAtDesc(plugin.id);
+
+    // Delete all version artifacts from storage
+    for (const version of versions) {
+      // Delete permanent storage files
+      if (version.storagePath && version.storageBucket) {
+        try {
+          await this.storageService.deleteArtifact(version.storagePath, version.storageBucket);
+          this.logger.log(`Deleted artifact from storage: ${version.storagePath}`);
+        } catch (error) {
+          this.logger.error(`Failed to delete artifact ${version.storagePath}: ${error.message}`);
+          // Continue with deletion even if storage cleanup fails
+        }
+      }
+
+      // Delete temporary storage files
+      if (version.tempStoragePath) {
+        try {
+          await this.storageService.deleteArtifact(version.tempStoragePath, 'temp_uploads');
+          this.logger.log(`Deleted temp artifact from storage: ${version.tempStoragePath}`);
+        } catch (error) {
+          this.logger.error(`Failed to delete temp artifact ${version.tempStoragePath}: ${error.message}`);
+          // Continue with deletion even if storage cleanup fails
+        }
+      }
+    }
+
+    // Delete plugin icon from storage
+    if (plugin.iconKey) {
+      try {
+        await this.storageService.deleteArtifact(plugin.iconKey, 'icons');
+        this.logger.log(`Deleted icon from storage: ${plugin.iconKey}`);
+      } catch (error) {
+        this.logger.error(`Failed to delete icon ${plugin.iconKey}: ${error.message}`);
+        // Continue with deletion even if storage cleanup fails
+      }
+    }
+
+    // Delete all version records from database
+    await this.versionsRepository.deleteByPluginId(plugin.id);
+
+    // Delete the plugin record from database
+    await this.pluginsRepository.delete(plugin.id);
+
+    this.logger.log(`Successfully deleted plugin ${packageId} and all associated data`);
+  }
+
+  /**
    * Retrieves statistics about a plugin.
    */
   async getPluginStatistics(packageId: string): Promise<PluginStatisticsResponse> {

@@ -215,6 +215,38 @@ export class PluginsRepository {
   }
 
   /**
+   * Delete a plugin by ID.
+   */
+  async delete(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('plugins')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to delete plugin: ${error.message}`);
+    }
+
+    this.logger.log(`Deleted plugin with ID: ${id}`);
+  }
+
+  /**
+   * Delete a plugin by package ID.
+   */
+  async deleteByPackageId(packageId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('plugins')
+      .delete()
+      .eq('package_id', packageId);
+
+    if (error) {
+      throw new Error(`Failed to delete plugin by package ID: ${error.message}`);
+    }
+
+    this.logger.log(`Deleted plugin with package ID: ${packageId}`);
+  }
+
+  /**
    * Map database row to Plugin entity.
    */
   private mapToEntity(data: any): Plugin {

@@ -1,6 +1,7 @@
-import { Controller, Get, Patch, Post, Delete, Param, Query, Body, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Param, Query, Body, UsePipes, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { PluginReviewService } from '../plugins/plugin-review.service';
+import { PluginsService } from '../plugins/plugins.service';
 import { PluginReviewItem } from '../common/dto/plugin-review-item.dto';
 import { ReviewDecisionRequestDto } from '../common/dto/review-decision-request.dto';
 
@@ -17,7 +18,10 @@ import { ReviewDecisionRequestDto } from '../common/dto/review-decision-request.
 @Controller('admin')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class AdminController {
-  constructor(private readonly reviewService: PluginReviewService) {}
+  constructor(
+    private readonly reviewService: PluginReviewService,
+    private readonly pluginsService: PluginsService,
+  ) {}
 
   /**
    * Retrieves the review queue - all plugin versions awaiting review.
@@ -79,5 +83,24 @@ export class AdminController {
   @ApiParam({ name: 'versionId', description: 'Version ID to unflag' })
   async unflagVersion(@Param('versionId') versionId: string): Promise<void> {
     return this.reviewService.unflagVersion(versionId);
+  }
+
+  /**
+   * Deletes a plugin and all its associated versions with full storage cleanup.
+   * This is a hard delete operation that removes:
+   * - All plugin version artifacts from storage
+   * - Plugin icon from storage
+   * - All plugin version records from database
+   * - The plugin record from database
+   */
+  @Delete('plugins/:packageId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete plugin',
+    description: 'Permanently deletes a plugin and all its versions. This action removes all storage files including artifacts and icons, and deletes all database records. This operation cannot be undone.',
+  })
+  @ApiParam({ name: 'packageId', description: 'Package ID of the plugin to delete (e.g., "com.synapse.tictic")' })
+  async deletePlugin(@Param('packageId') packageId: string): Promise<void> {
+    return this.pluginsService.deletePlugin(packageId);
   }
 }
