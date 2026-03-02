@@ -2,14 +2,13 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Query,
   Param,
   Body,
   HttpCode,
   HttpStatus,
-  Redirect,
-  ParseUUIDPipe,
-  DefaultValuePipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,363 +16,213 @@ import {
   ApiParam,
   ApiQuery,
   ApiResponse,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
-import { OAuthService, StartOAuthParams, HandleCallbackResult } from './oauth.service';
-import { OAuthProvider } from '../common/enums/oauth-provider.enum';
-import { isProviderSupported } from './oauth-provider.config';
+import { OAuthClientsRepository } from './oauth-clients.repository';
+import { VaultService } from '../vault/vault.service';
+import { OAuthProvider, isProviderSupported } from './oauth-provider.enum';
 
 /**
- * DTO for starting OAuth flow.
- */
-class StartOAuthDto {
-  user_id: string;
-  plugin_id: string;
-  redirect_uri?: string;
-  scopes?: string[];
-}
-
-/**
- * Response for starting OAuth flow.
- */
-class StartOAuthResponse {
-  authorization_url: string;
-  state: string;
-}
-
-/**
- * OAuth Controller - Handles OAuth 2.0 flows.
+ * OAuth Credentials Vault Controller
  *
- * Routes:
- * - GET /api/v1/oauth/:provider/start - Start OAuth flow
- * - GET /api/v1/oauth/:provider/callback - Handle OAuth callback
- * - POST /api/v1/oauth/:provider/refresh - Refresh access token
- * - POST /api/v1/oauth/:provider/revoke - Revoke access token
- * - GET /api/v1/oauth/:provider/check - Check if user has valid token
+ * Manages OAuth client credentials for plugins.
+ * The Synapse host app fetches these credentials to run its own OAuth flow.
  */
-@ApiTags('OAuth')
-@Controller('api/v1/oauth')
-export class OAuthController {
-  constructor(private readonly oauthService: OAuthService) {}
+@ApiTags('OAuth Credentials Vault')
+@Controller('api/v1/oauth/credentials')
+export class OAuthCredentialsController {
+  constructor(
+    private readonly oauthClientsRepository: OAuthClientsRepository,
+    private readonly vaultService: VaultService,
+  ) {}
 
   /**
-   * Start OAuth flow for a provider.
+   * Submit OAuth credentials for a plugin.
    *
-   * Returns an authorization URL that the user should be redirected to.
-   * The URL includes PKCE parameters and state for CSRF protection.
-   *
-   * @param provider The OAuth provider
-   * @param dto OAuth flow parameters
-   * @returns Authorization URL and state
+   * Developers submit their OAuth client credentials through this endpoint.
+   * Secrets are encrypted before storage.
    */
   @ApiOperation({
-    summary: 'Start OAuth flow',
-    description: `Generate an OAuth authorization URL with PKCE.
-                 The user should be redirected to the returned URL.
-                 After authorization, they will be redirected back to the callback endpoint.`,
-  })
-  @ApiParam({
-    name: 'provider',
-    description: 'OAuth provider name (e.g., notion, google, github)',
-    enum: Object.values(OAuthProvider),
-    example: OAuthProvider.NOTION,
-  })
-  @ApiQuery({
-    name: 'user_id',
-    description: 'User ID initiating the OAuth flow',
-    type: String,
-    required: true,
-    example: 'user_abc123',
-  })
-  @ApiQuery({
-    name: 'plugin_id',
-    description: 'Plugin ID requesting OAuth access',
-    type: String,
-    required: true,
-    example: 'plugin_xyz789',
-  })
-  @ApiQuery({
-    name: 'redirect_uri',
-    description: 'Custom redirect URI (optional, uses default callback URL)',
-    type: String,
-    required: false,
-  })
-  @ApiQuery({
-    name: 'scopes',
-    description: 'OAuth scopes to request (comma-separated)',
-    type: String,
-    required: false,
-    example: 'read,write',
+    summary: 'Submit OAuth credentials for a plugin',
+    description: `Register OAuth client credentials (client_id, client_secret) for a plugin
+                 to authenticate with a specific provider. Secrets are encrypted at rest.`,
   })
   @ApiResponse({
-    status: 200,
-    description: 'Authorization URL generated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        authorization_url: {
-          type: 'string',
-          description: 'URL to redirect user to for authorization',
-        },
-        state: {
-          type: 'string',
-          description: 'State parameter for CSRF protection',
-        },
-      },
-    },
+    status: 201,
+    description: 'OAuth credentials stored successfully',
   })
   @ApiResponse({ status: 400, description: 'Invalid request' })
-  @ApiResponse({ status: 404, description: 'OAuth credentials not found for this plugin/provider' })
-  @Get(':provider/start')
-  async startOAuthFlow(
-    @Param('provider') provider: string,
-    @Query('user_id') userId: string,
-    @Query('plugin_id') pluginId: string,
-    @Query('redirect_uri') redirectUri?: string,
-    @Query('scopes') scopes?: string,
-  ): Promise<StartOAuthResponse> {
-    // Validate provider
-    if (!isProviderSupported(provider)) {
-      return {
-        authorization_url: '',
-        state: '',
-      };
-    }
-
-    const params: StartOAuthParams = {
-      userId,
-      pluginId,
-      provider: provider as OAuthProvider,
-      redirectUri,
-      scopes: scopes ? scopes.split(',') : undefined,
-    };
-
-    const result = await this.oauthService.startFlow(params);
-
-    return {
-      authorization_url: result.authorizationUrl,
-      state: result.state,
-    };
-  }
-
-  /**
-   * Handle OAuth callback from provider.
-   *
-   * This endpoint receives the authorization code from the provider,
-   * exchanges it for tokens, and redirects the user back to the app.
-   *
-   * @param provider The OAuth provider
-   * @param query Callback query parameters
-   * @returns Redirect to deep link or error page
-   */
-  @ApiOperation({
-    summary: 'Handle OAuth callback',
-    description: `Receive OAuth callback from provider, exchange code for tokens,
-                 and redirect user to the Synapse app with success/error status.`,
-  })
-  @ApiParam({
-    name: 'provider',
-    description: 'OAuth provider name',
-    enum: Object.values(OAuthProvider),
-  })
-  @ApiQuery({
-    name: 'code',
-    description: 'Authorization code from provider',
-    type: String,
-    required: true,
-  })
-  @ApiQuery({
-    name: 'state',
-    description: 'State parameter for CSRF validation',
-    type: String,
-    required: true,
-  })
-  @ApiQuery({
-    name: 'error',
-    description: 'Error code if authorization failed',
-    type: String,
-    required: false,
-  })
-  @ApiQuery({
-    name: 'error_description',
-    description: 'Error description if authorization failed',
-    type: String,
-    required: false,
-  })
-  @ApiResponse({
-    status: 302,
-    description: 'Redirect to deep link (synapse://oauth/success or synapse://oauth/error)',
-  })
-  @ApiResponse({ status: 400, description: 'Invalid callback parameters' })
-  @Get(':provider/callback')
-  @Redirect(undefined, 302)
-  async handleOAuthCallback(
-    @Param('provider') provider: string,
-    @Query('code') code: string,
-    @Query('state') state: string,
-    @Query('error') error?: string,
-    @Query('error_description') errorDescription?: string,
-  ): Promise<{ url: string; statusCode: number }> {
-    const result: HandleCallbackResult = await this.oauthService.handleCallback({
-      state,
-      code,
-      error,
-      errorDescription,
+  @ApiResponse({ status: 409, description: 'Credentials already exist for this plugin/provider' })
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async submitCredentials(@Body() body: {
+    plugin_id: string;
+    provider: OAuthProvider;
+    client_id: string;
+    client_secret: string;
+    redirect_url: string;
+    scopes?: string[];
+    owner_developer_id: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    const result = await this.oauthClientsRepository.create({
+      pluginId: body.plugin_id,
+      provider: body.provider,
+      clientId: body.client_id,
+      clientSecret: body.client_secret,
+      redirectUrl: body.redirect_url,
+      scopes: body.scopes || [],
+      createdBy: body.owner_developer_id,
     });
 
-    if (result.success) {
-      return {
-        url: result.redirectUrl || 'synapse://oauth/success',
-        statusCode: 302,
-      };
-    }
-
-    // Redirect to error page with error details
-    const errorUrl = `synapse://oauth/error?error=${encodeURIComponent(result.error || 'Unknown error')}`;
+    // Return without the secret
     return {
-      url: errorUrl,
-      statusCode: 302,
+      id: result.id,
+      plugin_id: result.pluginId,
+      provider: result.provider,
+      client_id: result.clientId,
+      redirect_url: result.redirectUrl,
+      scopes: result.scopes,
+      metadata: body.metadata || {},
+      is_active: result.isActive,
+      created_at: result.createdAt,
     };
   }
 
   /**
-   * Refresh an expired OAuth token.
-   *
-   * @param provider The OAuth provider
-   * @param userId User ID
-   * @param pluginId Plugin ID
-   * @returns Refreshed token info
+   * List OAuth credentials by plugin.
    */
   @ApiOperation({
-    summary: 'Refresh OAuth token',
-    description: 'Refresh an expired access token using the refresh token.',
+    summary: 'Get OAuth credentials for a plugin',
+    description: 'Retrieve all OAuth credentials for a specific plugin. Secrets are not returned.',
   })
-  @ApiParam({
-    name: 'provider',
-    description: 'OAuth provider name',
-    enum: Object.values(OAuthProvider),
+  @ApiQuery({ name: 'plugin_id', description: 'Plugin ID (UUID or package_id)', required: true })
+  @ApiResponse({ status: 200, description: 'Credentials retrieved successfully' })
+  @Get()
+  async listByPlugin(@Query('plugin_id') pluginId: string) {
+    const credentials = await this.oauthClientsRepository.findByPackageId(pluginId);
+    return {
+      credentials: credentials.map((cred) => ({
+        id: cred.id,
+        plugin_id: cred.pluginId,
+        provider: cred.provider,
+        client_id: cred.clientId,
+        redirect_url: cred.redirectUrl,
+        scopes: cred.scopes,
+        is_active: cred.isActive,
+        created_at: cred.createdAt,
+        updated_at: cred.updatedAt,
+      })),
+    };
+  }
+
+  /**
+   * List OAuth credentials by developer.
+   */
+  @ApiOperation({
+    summary: 'Get OAuth credentials by developer',
+    description: 'Retrieve all OAuth credentials submitted by a developer.',
   })
-  @ApiQuery({
-    name: 'user_id',
-    description: 'User ID',
-    type: String,
-    required: true,
+  @Get('developer/:developerId')
+  async listByDeveloper(@Param('developerId') developerId: string) {
+    const credentials = await this.oauthClientsRepository.findByCreatedBy(developerId);
+    return {
+      credentials: credentials.map((cred) => ({
+        id: cred.id,
+        plugin_id: cred.pluginId,
+        provider: cred.provider,
+        client_id: cred.clientId,
+        redirect_url: cred.redirectUrl,
+        scopes: cred.scopes,
+        is_active: cred.isActive,
+        created_at: cred.createdAt,
+        updated_at: cred.updatedAt,
+      })),
+    };
+  }
+
+  /**
+   * Fetch credentials for OAuth flow (internal endpoint).
+   *
+   * This endpoint is called by the Synapse host app to retrieve
+   * decrypted credentials before initiating the OAuth flow.
+   * Requires proper internal service authorization.
+   */
+  @ApiOperation({
+    summary: 'Fetch credentials for OAuth (internal)',
+    description: `Retrieve decrypted OAuth credentials for initiating OAuth flow.
+                 This endpoint should only be called by the Synapse host app with proper authorization.`,
   })
-  @ApiQuery({
-    name: 'plugin_id',
-    description: 'Plugin ID',
-    type: String,
-    required: true,
+  @ApiQuery({ name: 'plugin_id', description: 'Plugin ID', required: true })
+  @ApiQuery({ name: 'provider', description: 'OAuth provider', required: true })
+  @ApiResponse({ status: 200, description: 'Credentials retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Credentials not found' })
+  @ApiResponse({ status: 410, description: 'Credentials are disabled' })
+  @Post('fetch')
+  async fetchForOAuth(@Query('plugin_id') pluginId: string, @Query('provider') provider: string) {
+    const credentials = await this.oauthClientsRepository.getCredentials(
+      pluginId,
+      provider as OAuthProvider,
+    );
+
+    if (!credentials) {
+      throw new Error('Credentials not found');
+    }
+
+    return {
+      client_id: credentials.clientId,
+      client_secret: credentials.clientSecret,
+      redirect_url: credentials.redirectUrl,
+      scopes: credentials.scopes,
+    };
+  }
+
+  /**
+   * Update OAuth credentials.
+   */
+  @ApiOperation({
+    summary: 'Update OAuth credentials',
+    description: 'Update OAuth credentials. Only non-null fields are updated.',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Token refreshed successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        expiresAt: { type: 'string', format: 'date-time' },
-        expiresIn: { type: 'number', description: 'Seconds until expiration' },
-        scopes: { type: 'array', items: { type: 'string' } },
-      },
+  @ApiParam({ name: 'id', description: 'Credential ID (UUID)' })
+  @ApiResponse({ status: 200, description: 'Credentials updated successfully' })
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: {
+      client_id?: string;
+      client_secret?: string;
+      redirect_url?: string;
+      scopes?: string[];
+      metadata?: Record<string, unknown>;
+      is_active?: boolean;
     },
-  })
-  @ApiResponse({ status: 404, description: 'No tokens found or no refresh token available' })
-  @Post(':provider/refresh')
-  @HttpCode(HttpStatus.OK)
-  async refreshToken(
-    @Param('provider') provider: string,
-    @Query('user_id') userId: string,
-    @Query('plugin_id') pluginId: string,
   ) {
-    return this.oauthService.refreshToken(userId, pluginId, provider as OAuthProvider);
+    const updated = await this.oauthClientsRepository.update(id, body);
+
+    return {
+      id: updated.id,
+      plugin_id: updated.pluginId,
+      provider: updated.provider,
+      client_id: updated.clientId,
+      redirect_url: updated.redirectUrl,
+      scopes: updated.scopes,
+      is_active: updated.isActive,
+      updated_at: updated.updatedAt,
+    };
   }
 
   /**
-   * Revoke OAuth tokens.
-   *
-   * @param provider The OAuth provider
-   * @param userId User ID
-   * @param pluginId Plugin ID
+   * Disable OAuth credentials.
    */
   @ApiOperation({
-    summary: 'Revoke OAuth token',
-    description: 'Revoke OAuth tokens for a user and plugin.',
+    summary: 'Disable OAuth credentials',
+    description: 'Soft-delete OAuth credentials (sets is_active = false).',
   })
-  @ApiParam({
-    name: 'provider',
-    description: 'OAuth provider name',
-    enum: Object.values(OAuthProvider),
-  })
-  @ApiQuery({
-    name: 'user_id',
-    description: 'User ID',
-    type: String,
-    required: true,
-  })
-  @ApiQuery({
-    name: 'plugin_id',
-    description: 'Plugin ID',
-    type: String,
-    required: true,
-  })
-  @ApiResponse({ status: 204, description: 'Token revoked successfully' })
-  @ApiResponse({ status: 404, description: 'No tokens found' })
-  @Post(':provider/revoke')
+  @ApiParam({ name: 'id', description: 'Credential ID (UUID)' })
+  @ApiResponse({ status: 204, description: 'Credentials disabled successfully' })
+  @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async revokeToken(
-    @Param('provider') provider: string,
-    @Query('user_id') userId: string,
-    @Query('plugin_id') pluginId: string,
-  ): Promise<void> {
-    await this.oauthService.revokeToken(userId, pluginId, provider as OAuthProvider);
-  }
-
-  /**
-   * Check if user has valid OAuth token.
-   *
-   * @param provider The OAuth provider
-   * @param userId User ID
-   * @param pluginId Plugin ID
-   * @returns Token validation status
-   */
-  @ApiOperation({
-    summary: 'Check OAuth token validity',
-    description: 'Check if a user has a valid (non-expired, non-revoked) OAuth token.',
-  })
-  @ApiParam({
-    name: 'provider',
-    description: 'OAuth provider name',
-    enum: Object.values(OAuthProvider),
-  })
-  @ApiQuery({
-    name: 'user_id',
-    description: 'User ID',
-    type: String,
-    required: true,
-  })
-  @ApiQuery({
-    name: 'plugin_id',
-    description: 'Plugin ID',
-    type: String,
-    required: true,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Token validity status',
-    schema: {
-      type: 'object',
-      properties: {
-        valid: { type: 'boolean' },
-      },
-    },
-  })
-  @Get(':provider/check')
-  async checkToken(
-    @Param('provider') provider: string,
-    @Query('user_id') userId: string,
-    @Query('plugin_id') pluginId: string,
-  ): Promise<{ valid: boolean }> {
-    const valid = await this.oauthService.hasValidToken(userId, pluginId, provider as OAuthProvider);
-    return { valid };
+  async disable(@Param('id') id: string): Promise<void> {
+    await this.oauthClientsRepository.deactivate(id);
   }
 }

@@ -75,8 +75,7 @@ export class AppModule implements NestModule {
       .addTag('Developer', 'API for developers to submit and manage plugins')
       .addTag('Admin', 'API for administrators to review and manage plugins')
       .addTag('Health', 'Health check endpoints for monitoring')
-      .addTag('OAuth', 'OAuth 2.0 authentication flows for plugins')
-      .addTag('OAuth Proxy', 'Proxy endpoints for authenticated provider API calls')
+      .addTag('OAuth Credentials Vault', 'OAuth client credential storage for plugins')
       .addBearerAuth()
       .build();
 

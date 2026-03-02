@@ -4,7 +4,6 @@ import { MulterModule } from '@nestjs/platform-express';
 import { DeveloperService } from './developer.service';
 import { DeveloperController } from './developer.controller';
 import { PluginsModule } from '../plugins/plugins.module';
-import { OAuthModule } from '../oauth/oauth.module';
 
 /**
  * Developer module - handles developer plugin submission operations.
@@ -13,7 +12,6 @@ import { OAuthModule } from '../oauth/oauth.module';
   imports: [
     ConfigModule,
     PluginsModule,
-    OAuthModule,
     MulterModule.register({
       limits: {
         fileSize: 50 * 1024 * 1024, // 50MB

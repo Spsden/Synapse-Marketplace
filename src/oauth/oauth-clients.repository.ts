@@ -1,14 +1,50 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
-import {
-  OAuthClient,
-  CreateOAuthClientDto,
-  UpdateOAuthClientDto,
-} from '../common/entities/oauth.entity';
-import { OAuthProvider } from '../common/enums/oauth-provider.enum';
+import { OAuthProvider } from './oauth-provider.enum';
 import { VaultService } from '../vault/vault.service';
 import { ResourceNotFoundException } from '../common/exceptions/resource-not-found.exception';
+
+/**
+ * OAuth client entity.
+ */
+interface OAuthClient {
+  id: string;
+  pluginId: string;
+  provider: OAuthProvider;
+  clientId: string;
+  clientSecretEncrypted: string;
+  redirectUrl: string;
+  scopes: string[];
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+}
+
+/**
+ * DTO for creating OAuth client credentials.
+ */
+interface CreateOAuthClientDto {
+  pluginId: string;
+  provider: OAuthProvider;
+  clientId: string;
+  clientSecret: string;
+  redirectUrl: string;
+  scopes: string[];
+  createdBy: string;
+}
+
+/**
+ * DTO for updating OAuth client credentials.
+ */
+interface UpdateOAuthClientDto {
+  clientId?: string;
+  clientSecret?: string;
+  redirectUrl?: string;
+  scopes?: string[];
+  isActive?: boolean;
+}
 
 /**
  * Repository for OAuthClient entity using Supabase.
@@ -59,6 +95,24 @@ export class OAuthClientsRepository {
       .order('created_at', { ascending: false });
 
     return (data || []).map((item) => this.mapToEntity(item));
+  }
+
+  /**
+   * Find OAuth clients by package_id.
+   */
+  async findByPackageId(packageId: string): Promise<OAuthClient[]> {
+    // First get the plugin_id from package_id
+    const { data: plugin } = await this.supabase
+      .from('plugins')
+      .select('id')
+      .eq('package_id', packageId)
+      .single();
+
+    if (!plugin) {
+      return [];
+    }
+
+    return this.findByPluginId(plugin.id);
   }
 
   /**
@@ -120,7 +174,7 @@ export class OAuthClientsRepository {
       client_secret_encrypted: clientSecretEncrypted,
       redirect_url: dto.redirectUrl,
       scopes: dto.scopes,
-      created_by: dto.createdBy,
+      owner_developer_id: dto.createdBy,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       is_active: true,
@@ -252,7 +306,7 @@ export class OAuthClientsRepository {
       clientSecretEncrypted: data.client_secret_encrypted,
       redirectUrl: data.redirect_url,
       scopes: data.scopes,
-      createdBy: data.created_by,
+      createdBy: data.owner_developer_id,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
       isActive: data.is_active,
