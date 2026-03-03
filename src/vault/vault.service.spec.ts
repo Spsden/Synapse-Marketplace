@@ -56,7 +56,8 @@ describe('VaultService', () => {
 
       const decrypted1 = await service.decrypt(encrypted1);
       const decrypted2 = await service.decrypt(encrypted2);
-      expect(decrypted1).toEqual(decrypted2).toEqual(plaintext);
+      expect(decrypted1).toEqual(decrypted2);
+      expect(decrypted2).toEqual(plaintext);
     });
 
     it('should handle special characters and unicode', async () => {

@@ -21,7 +21,6 @@ CREATE TABLE plugin_oauth_clients (
     provider                VARCHAR(50) NOT NULL,
     client_id               TEXT NOT NULL,
     client_secret_encrypted TEXT NOT NULL,
-    redirect_url            TEXT NOT NULL,
     scopes                  TEXT[] NOT NULL DEFAULT '{}',
     owner_developer_id      VARCHAR(255) NOT NULL,
     metadata                JSONB DEFAULT '{}'::jsonb,

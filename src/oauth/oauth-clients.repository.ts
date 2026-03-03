@@ -1,9 +1,47 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
-import { OAuthProvider } from './oauth-provider.enum';
+import { OAuthProvider, isProviderSupported } from './oauth-provider.enum';
 import { VaultService } from '../vault/vault.service';
 import { ResourceNotFoundException } from '../common/exceptions/resource-not-found.exception';
+
+/**
+ * Platform-defined maximum allowed scopes per OAuth provider.
+ * These limits prevent privilege escalation and ensure compliance with provider policies.
+ */
+const PROVIDER_MAX_SCOPES: Record<OAuthProvider, string[]> = {
+  [OAuthProvider.NOTION]: ['read', 'write', 'email'],
+  [OAuthProvider.GOOGLE]: ['openid', 'email', 'profile', 'drive.readonly', 'calendar.readonly', 'contacts.readonly'],
+  [OAuthProvider.GITHUB]: ['read:user', 'user:email', 'repo', 'read:org'],
+  [OAuthProvider.SLACK]: ['channels:read', 'chat:write', 'files:read'],
+  [OAuthProvider.MICROSOFT]: ['openid', 'email', 'profile', 'files.read'],
+  [OAuthProvider.DISCORD]: ['identify', 'email', 'guilds'],
+  [OAuthProvider.LINEAR]: ['read', 'write', 'issues:read'],
+  [OAuthProvider.FIGMA]: ['file_read', 'comments'],
+  [OAuthProvider.SALESFORCE]: ['api', 'refresh_token', 'full'],
+  [OAuthProvider.DROPBOX]: ['files.metadata.read', 'files.content.read'],
+  [OAuthProvider.STRIPE]: ['read_write'],
+};
+
+/**
+ * Validate that requested scopes are within platform-defined limits.
+ */
+function validateScopes(provider: OAuthProvider, requestedScopes: string[]): void {
+  const maxScopes = PROVIDER_MAX_SCOPES[provider];
+
+  if (!maxScopes) {
+    throw new BadRequestException(`No scope limits defined for provider: ${provider}`);
+  }
+
+  const invalidScopes = requestedScopes.filter(scope => !maxScopes.includes(scope));
+
+  if (invalidScopes.length > 0) {
+    throw new ForbiddenException(
+      `Requested scopes not allowed for ${provider}: ${invalidScopes.join(', ')}. ` +
+      `Allowed scopes: ${maxScopes.join(', ')}`
+    );
+  }
+}
 
 /**
  * OAuth client entity.
@@ -14,12 +52,12 @@ interface OAuthClient {
   provider: OAuthProvider;
   clientId: string;
   clientSecretEncrypted: string;
-  redirectUrl: string;
   scopes: string[];
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
   isActive: boolean;
+  extras?: Record<string, unknown>;
 }
 
 /**
@@ -30,9 +68,9 @@ interface CreateOAuthClientDto {
   provider: OAuthProvider;
   clientId: string;
   clientSecret: string;
-  redirectUrl: string;
   scopes: string[];
   createdBy: string;
+  extras?: Record<string, unknown>;
 }
 
 /**
@@ -41,9 +79,9 @@ interface CreateOAuthClientDto {
 interface UpdateOAuthClientDto {
   clientId?: string;
   clientSecret?: string;
-  redirectUrl?: string;
   scopes?: string[];
   isActive?: boolean;
+  extras?: Record<string, unknown>;
 }
 
 /**
@@ -161,8 +199,31 @@ export class OAuthClientsRepository {
 
   /**
    * Create new OAuth client credentials (encrypts the client secret).
+   *
+   * Security validations performed:
+   * 1. Provider must be supported at platform level
+   * 2. Scopes must be within platform-defined limits
+   * 3. Only ONE active client per plugin+provider (deactivates existing)
    */
   async create(dto: CreateOAuthClientDto): Promise<OAuthClient> {
+    // 1️⃣ Validate provider is supported at platform level
+    if (!isProviderSupported(dto.provider)) {
+      throw new ForbiddenException(
+        `OAuth provider '${dto.provider}' is not supported. ` +
+        `Supported providers: ${Object.values(OAuthProvider).join(', ')}`
+      );
+    }
+
+    // 2️⃣ Validate scopes are within platform-defined limits
+    validateScopes(dto.provider, dto.scopes);
+
+    // 3️⃣ Enforce ONE active client per plugin+provider: deactivate existing
+    await this.supabase
+      .from('plugin_oauth_clients')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('plugin_id', dto.pluginId)
+      .eq('provider', dto.provider);
+
     // Encrypt the client secret before storing
     const clientSecretEncrypted = await this.vaultService.encrypt(dto.clientSecret);
 
@@ -172,9 +233,9 @@ export class OAuthClientsRepository {
       provider: dto.provider,
       client_id: dto.clientId,
       client_secret_encrypted: clientSecretEncrypted,
-      redirect_url: dto.redirectUrl,
       scopes: dto.scopes,
       owner_developer_id: dto.createdBy,
+      metadata: dto.extras || {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       is_active: true,
@@ -194,6 +255,15 @@ export class OAuthClientsRepository {
   }
 
   /**
+   * Compute the platform-owned redirect URL for a provider.
+   * Redirect URLs are platform-controlled and not configurable by developers.
+   */
+  getRedirectUrl(provider: OAuthProvider): string {
+    const baseUrl = this.configService.get<string>('app.baseUrl') || 'https://api.synapse.dev';
+    return `${baseUrl}/oauth/callback/${provider}`;
+  }
+
+  /**
    * Update existing OAuth client credentials.
    */
   async update(id: string, dto: UpdateOAuthClientDto): Promise<OAuthClient> {
@@ -202,9 +272,9 @@ export class OAuthClientsRepository {
     };
 
     if (dto.clientId !== undefined) updateData.client_id = dto.clientId;
-    if (dto.redirectUrl !== undefined) updateData.redirect_url = dto.redirectUrl;
     if (dto.scopes !== undefined) updateData.scopes = dto.scopes;
     if (dto.isActive !== undefined) updateData.is_active = dto.isActive;
+    if (dto.extras !== undefined) updateData.metadata = dto.extras;
 
     // Encrypt new client secret if provided
     if (dto.clientSecret !== undefined) {
@@ -223,7 +293,7 @@ export class OAuthClientsRepository {
     }
 
     if (!data) {
-      throw new ResourceNotFoundException('OAuth client not found');
+      throw new ResourceNotFoundException('OAuth client', 'id', id);
     }
 
     return this.mapToEntity(data);
@@ -251,28 +321,9 @@ export class OAuthClientsRepository {
   }
 
   /**
-   * Decrypt and return the client secret for a given OAuth client.
-   * Use this carefully and only when needed for token exchange.
-   */
-  async getClientSecret(clientId: string, provider: OAuthProvider): Promise<string | null> {
-    const { data, error } = await this.supabase
-      .from('plugin_oauth_clients')
-      .select('client_secret_encrypted')
-      .eq('client_id', clientId)
-      .eq('provider', provider)
-      .eq('is_active', true)
-      .single();
-
-    if (error || !data) {
-      return null;
-    }
-
-    return this.vaultService.decrypt(data.client_secret_encrypted);
-  }
-
-  /**
    * Get both client ID and decrypted secret for a plugin/provider combination.
    * Returns null if credentials don't exist or are inactive.
+   * This is the ONLY method that should return decrypted secrets for OAuth flows.
    */
   async getCredentials(
     pluginId: string,
@@ -289,7 +340,7 @@ export class OAuthClientsRepository {
     return {
       clientId: client.clientId,
       clientSecret,
-      redirectUrl: client.redirectUrl,
+      redirectUrl: this.getRedirectUrl(provider),
       scopes: client.scopes,
     };
   }
@@ -304,12 +355,12 @@ export class OAuthClientsRepository {
       provider: data.provider as OAuthProvider,
       clientId: data.client_id,
       clientSecretEncrypted: data.client_secret_encrypted,
-      redirectUrl: data.redirect_url,
       scopes: data.scopes,
       createdBy: data.owner_developer_id,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
       isActive: data.is_active,
+      extras: data.metadata || {},
     };
   }
 }

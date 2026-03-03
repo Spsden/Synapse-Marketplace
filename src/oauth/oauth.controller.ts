@@ -59,7 +59,6 @@ export class OAuthCredentialsController {
     provider: OAuthProvider;
     client_id: string;
     client_secret: string;
-    redirect_url: string;
     scopes?: string[];
     owner_developer_id: string;
     metadata?: Record<string, unknown>;
@@ -69,9 +68,9 @@ export class OAuthCredentialsController {
       provider: body.provider,
       clientId: body.client_id,
       clientSecret: body.client_secret,
-      redirectUrl: body.redirect_url,
       scopes: body.scopes || [],
       createdBy: body.owner_developer_id,
+      extras: body.metadata || {},
     });
 
     // Return without the secret
@@ -80,7 +79,6 @@ export class OAuthCredentialsController {
       plugin_id: result.pluginId,
       provider: result.provider,
       client_id: result.clientId,
-      redirect_url: result.redirectUrl,
       scopes: result.scopes,
       metadata: body.metadata || {},
       is_active: result.isActive,
@@ -106,8 +104,8 @@ export class OAuthCredentialsController {
         plugin_id: cred.pluginId,
         provider: cred.provider,
         client_id: cred.clientId,
-        redirect_url: cred.redirectUrl,
         scopes: cred.scopes,
+        extras: cred.extras,
         is_active: cred.isActive,
         created_at: cred.createdAt,
         updated_at: cred.updatedAt,
@@ -131,8 +129,8 @@ export class OAuthCredentialsController {
         plugin_id: cred.pluginId,
         provider: cred.provider,
         client_id: cred.clientId,
-        redirect_url: cred.redirectUrl,
         scopes: cred.scopes,
+        extras: cred.extras,
         is_active: cred.isActive,
         created_at: cred.createdAt,
         updated_at: cred.updatedAt,
@@ -191,21 +189,26 @@ export class OAuthCredentialsController {
     @Body() body: {
       client_id?: string;
       client_secret?: string;
-      redirect_url?: string;
       scopes?: string[];
       metadata?: Record<string, unknown>;
       is_active?: boolean;
     },
   ) {
-    const updated = await this.oauthClientsRepository.update(id, body);
+    const updated = await this.oauthClientsRepository.update(id, {
+      clientId: body.client_id,
+      clientSecret: body.client_secret,
+      scopes: body.scopes,
+      isActive: body.is_active,
+      extras: body.metadata,
+    });
 
     return {
       id: updated.id,
       plugin_id: updated.pluginId,
       provider: updated.provider,
       client_id: updated.clientId,
-      redirect_url: updated.redirectUrl,
       scopes: updated.scopes,
+      extras: updated.extras,
       is_active: updated.isActive,
       updated_at: updated.updatedAt,
     };
