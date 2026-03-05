@@ -68,7 +68,7 @@ function validateScopes(
  */
 interface OAuthClient {
     id: string;
-    pluginId: string;
+    package_id: string;
     provider: OAuthProvider;
     clientId: string;
     clientSecretEncrypted: string;
@@ -84,7 +84,7 @@ interface OAuthClient {
  * DTO for creating OAuth client credentials.
  */
 interface CreateOAuthClientDto {
-    pluginId: string;
+    package_id: string;
     provider: OAuthProvider;
     clientId: string;
     clientSecret: string;
@@ -131,16 +131,18 @@ export class OAuthClientsRepository {
      * Find OAuth client credentials by plugin ID and provider.
      */
     async findByPluginAndProvider(
-        pluginId: string,
+        package_id: string,
         provider: OAuthProvider,
     ): Promise<OAuthClient | null> {
         const { data, error } = await this.supabase
             .from("plugin_oauth_clients")
             .select("*")
-            .eq("plugin_id", pluginId)
+            .eq("package_id", package_id)
             .eq("provider", provider)
             .eq("is_active", true)
             .single();
+
+        console.log(data);
 
         if (error || !data) {
             return null;
@@ -248,7 +250,7 @@ export class OAuthClientsRepository {
         await this.supabase
             .from("plugin_oauth_clients")
             .update({ is_active: false, updated_at: new Date().toISOString() })
-            .eq("plugin_id", dto.pluginId)
+            .eq("package_id", dto.package_id)
             .eq("provider", dto.provider);
 
         // Encrypt the client secret before storing
@@ -258,7 +260,7 @@ export class OAuthClientsRepository {
 
         const newClient = {
             id: crypto.randomUUID(),
-            plugin_id: dto.pluginId,
+            package_id: dto.package_id,
             provider: dto.provider,
             client_id: dto.clientId,
             client_secret_encrypted: clientSecretEncrypted,
@@ -366,6 +368,7 @@ export class OAuthClientsRepository {
         redirectUrl: string;
         scopes: string[];
     } | null> {
+        console.log(pluginI)
         const client = await this.findByPluginAndProvider(pluginId, provider);
 
         if (!client) {
@@ -390,7 +393,7 @@ export class OAuthClientsRepository {
     private mapToEntity(data: any): OAuthClient {
         return {
             id: data.id,
-            pluginId: data.plugin_id,
+            package_id: data.package_id,
             provider: data.provider as OAuthProvider,
             clientId: data.client_id,
             clientSecretEncrypted: data.client_secret_encrypted,
