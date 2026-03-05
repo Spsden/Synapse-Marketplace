@@ -181,11 +181,11 @@ export class OAuthCredentialsController {
     @ApiResponse({ status: 410, description: "Credentials are disabled" })
     @Post("fetch")
     async fetchForOAuth(
-        @Query("package_id") pluginId: string,
+        @Query("package_id") package_id: string,
         @Query("provider") provider: string,
     ) {
         const credentials = await this.oauthClientsRepository.getCredentials(
-            pluginId,
+            package_id,
             provider as OAuthProvider,
         );
 
@@ -193,7 +193,7 @@ export class OAuthCredentialsController {
             throw new ResourceNotFoundException(
                 "OAuth credentials",
                 "plugin_id+provider",
-                `${pluginId}+${provider}`,
+                `${package_id}+${provider}`,
             );
         }
 

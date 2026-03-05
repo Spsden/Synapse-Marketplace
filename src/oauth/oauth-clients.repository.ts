@@ -360,7 +360,7 @@ export class OAuthClientsRepository {
      * This is the ONLY method that should return decrypted secrets for OAuth flows.
      */
     async getCredentials(
-        pluginId: string,
+        package_id: string,
         provider: OAuthProvider,
     ): Promise<{
         clientId: string;
@@ -368,8 +368,8 @@ export class OAuthClientsRepository {
         redirectUrl: string;
         scopes: string[];
     } | null> {
-        console.log(pluginI)
-        const client = await this.findByPluginAndProvider(pluginId, provider);
+        console.log(package_id)
+        const client = await this.findByPluginAndProvider(package_id, provider);
 
         if (!client) {
             return null;
