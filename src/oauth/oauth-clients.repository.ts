@@ -58,7 +58,7 @@ function validateScopes(
     if (invalidScopes.length > 0) {
         throw new ForbiddenException(
             `Requested scopes not allowed for ${provider}: ${invalidScopes.join(", ")}. ` +
-                `Allowed scopes: ${maxScopes.join(", ")}`,
+            `Allowed scopes: ${maxScopes.join(", ")}`,
         );
     }
 }
@@ -134,6 +134,8 @@ export class OAuthClientsRepository {
         package_id: string,
         provider: OAuthProvider,
     ): Promise<OAuthClient | null> {
+
+        console.log(package_id,"suraj")
         const { data, error } = await this.supabase
             .from("plugin_oauth_clients")
             .select("*")
@@ -141,8 +143,6 @@ export class OAuthClientsRepository {
             .eq("provider", provider)
             .eq("is_active", true)
             .single();
-
-        console.log(data);
 
         if (error || !data) {
             return null;
@@ -239,7 +239,7 @@ export class OAuthClientsRepository {
         if (!isProviderSupported(dto.provider)) {
             throw new ForbiddenException(
                 `OAuth provider '${dto.provider}' is not supported. ` +
-                    `Supported providers: ${Object.values(OAuthProvider).join(", ")}`,
+                `Supported providers: ${Object.values(OAuthProvider).join(", ")}`,
             );
         }
 
@@ -368,7 +368,7 @@ export class OAuthClientsRepository {
         redirectUrl: string;
         scopes: string[];
     } | null> {
-        console.log(package_id)
+
         const client = await this.findByPluginAndProvider(package_id, provider);
 
         if (!client) {

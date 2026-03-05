@@ -34,7 +34,7 @@ export class OAuthCredentialsController {
     constructor(
         private readonly oauthClientsRepository: OAuthClientsRepository,
         private readonly vaultService: VaultService,
-    ) {}
+    ) { }
 
     /**
      * Submit OAuth credentials for a plugin.
@@ -93,41 +93,41 @@ export class OAuthCredentialsController {
         };
     }
 
-    /**
-     * List OAuth credentials by plugin.
-     */
-    @ApiOperation({
-        summary: "Get OAuth credentials for a plugin",
-        description:
-            "Retrieve all OAuth credentials for a specific plugin. Secrets are not returned.",
-    })
-    @ApiQuery({
-        name: "plugin_id",
-        description: "Plugin ID (UUID or package_id)",
-        required: true,
-    })
-    @ApiResponse({
-        status: 200,
-        description: "Credentials retrieved successfully",
-    })
-    @Get()
-    async listByPlugin(@Query("package_id") pluginId: string) {
-        const credentials =
-            await this.oauthClientsRepository.findByPluginId(pluginId);
-        return {
-            credentials: credentials.map((cred) => ({
-                id: cred.id,
-                package_id: cred.package_id,
-                provider: cred.provider,
-                client_id: cred.clientId,
-                scopes: cred.scopes,
-                extras: cred.extras,
-                is_active: cred.isActive,
-                created_at: cred.createdAt,
-                updated_at: cred.updatedAt,
-            })),
-        };
-    }
+    // /**
+    //  * List OAuth credentials by plugin.
+    //  */
+    // @ApiOperation({
+    //     summary: "Get OAuth credentials for a plugin",
+    //     description:
+    //         "Retrieve all OAuth credentials for a specific plugin. Secrets are not returned.",
+    // })
+    // @ApiQuery({
+    //     name: "plugin_id",
+    //     description: "Plugin ID (UUID or package_id)",
+    //     required: true,
+    // })
+    // @ApiResponse({
+    //     status: 200,
+    //     description: "Credentials retrieved successfully",
+    // })
+    // @Get()
+    // async listByPlugin(@Query("package_id") pluginId: string) {
+    //     const credentials =
+    //         await this.oauthClientsRepository.findByPluginId(pluginId);
+    //     return {
+    //         credentials: credentials.map((cred) => ({
+    //             id: cred.id,
+    //             package_id: cred.package_id,
+    //             provider: cred.provider,
+    //             client_id: cred.clientId,
+    //             scopes: cred.scopes,
+    //             extras: cred.extras,
+    //             is_active: cred.isActive,
+    //             created_at: cred.createdAt,
+    //             updated_at: cred.updatedAt,
+    //         })),
+    //     };
+    // }
 
     /**
      * List OAuth credentials by developer.
@@ -179,10 +179,10 @@ export class OAuthCredentialsController {
     })
     @ApiResponse({ status: 404, description: "Credentials not found" })
     @ApiResponse({ status: 410, description: "Credentials are disabled" })
-    @Post("fetch")
+    @Get(":package_id/:provider")
     async fetchForOAuth(
-        @Query("package_id") package_id: string,
-        @Query("provider") provider: string,
+        @Param("package_id") package_id: string,
+        @Param("provider") provider: OAuthProvider,
     ) {
         const credentials = await this.oauthClientsRepository.getCredentials(
             package_id,
@@ -192,7 +192,7 @@ export class OAuthCredentialsController {
         if (!credentials) {
             throw new ResourceNotFoundException(
                 "OAuth credentials",
-                "plugin_id+provider",
+                "package_id+provider",
                 `${package_id}+${provider}`,
             );
         }
