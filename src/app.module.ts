@@ -11,6 +11,8 @@ import { DeveloperModule } from './developer/developer.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
+import { OAuthModule } from './oauth/oauth.module';
+import { VaultModule } from './vault/vault.module';
 
 /**
  * Root application module.
@@ -34,10 +36,12 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
 
     // Feature modules
     HealthModule,
+    VaultModule,
     StorageModule,
     PluginsModule,
     DeveloperModule,
     AdminModule,
+    OAuthModule,
   ],
   controllers: [],
   providers: [
@@ -71,6 +75,7 @@ export class AppModule implements NestModule {
       .addTag('Developer', 'API for developers to submit and manage plugins')
       .addTag('Admin', 'API for administrators to review and manage plugins')
       .addTag('Health', 'Health check endpoints for monitoring')
+      .addTag('OAuth Credentials Vault', 'OAuth client credential storage for plugins')
       .addBearerAuth()
       .build();
 

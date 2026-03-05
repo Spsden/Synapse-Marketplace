@@ -1,4 +1,12 @@
-import { Controller, Post, UseInterceptors, UploadedFile, UsePipes, ValidationPipe, Body, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  UsePipes,
+  ValidationPipe,
+  Body,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { DeveloperService } from './developer.service';
@@ -9,6 +17,9 @@ import { PluginDetailResponse } from '../common/dto/plugin-detail-response.dto';
  * Endpoints for developers to upload and manage their plugins.
  *
  * Base path: /api/v1/dev
+ *
+ * Note: OAuth credential management is handled by the OAuth Credentials Vault
+ * at /api/v1/oauth/credentials.
  */
 @ApiTags('Developer')
 @Controller('dev')
