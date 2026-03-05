@@ -113,7 +113,7 @@ export class OAuthCredentialsController {
     @Get()
     async listByPlugin(@Query("plugin_id") pluginId: string) {
         const credentials =
-            await this.oauthClientsRepository.findByPackageId(pluginId);
+            await this.oauthClientsRepository.findByPluginId(pluginId);
         return {
             credentials: credentials.map((cred) => ({
                 id: cred.id,
