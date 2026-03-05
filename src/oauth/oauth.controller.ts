@@ -61,7 +61,7 @@ export class OAuthCredentialsController {
     async submitCredentials(
         @Body()
         body: {
-            plugin_id: string;
+            package_id: string;
             provider: OAuthProvider;
             client_id: string;
             client_secret: string;
@@ -71,7 +71,7 @@ export class OAuthCredentialsController {
         },
     ) {
         const result = await this.oauthClientsRepository.create({
-            pluginId: body.plugin_id,
+            package_id: body.package_id,
             provider: body.provider,
             clientId: body.client_id,
             clientSecret: body.client_secret,
@@ -83,7 +83,7 @@ export class OAuthCredentialsController {
         // Return without the secret
         return {
             id: result.id,
-            plugin_id: result.pluginId,
+            package_id: result.package_id,
             provider: result.provider,
             client_id: result.clientId,
             scopes: result.scopes,
@@ -111,13 +111,13 @@ export class OAuthCredentialsController {
         description: "Credentials retrieved successfully",
     })
     @Get()
-    async listByPlugin(@Query("plugin_id") pluginId: string) {
+    async listByPlugin(@Query("package_id") pluginId: string) {
         const credentials =
             await this.oauthClientsRepository.findByPluginId(pluginId);
         return {
             credentials: credentials.map((cred) => ({
                 id: cred.id,
-                plugin_id: cred.pluginId,
+                package_id: cred.package_id,
                 provider: cred.provider,
                 client_id: cred.clientId,
                 scopes: cred.scopes,
@@ -143,7 +143,7 @@ export class OAuthCredentialsController {
         return {
             credentials: credentials.map((cred) => ({
                 id: cred.id,
-                plugin_id: cred.pluginId,
+                package_id: cred.package_id,
                 provider: cred.provider,
                 client_id: cred.clientId,
                 scopes: cred.scopes,
@@ -167,7 +167,7 @@ export class OAuthCredentialsController {
         description: `Retrieve decrypted OAuth credentials for initiating OAuth flow.
                  This endpoint should only be called by the Synapse host app with proper authorization.`,
     })
-    @ApiQuery({ name: "plugin_id", description: "Plugin ID", required: true })
+    @ApiQuery({ name: "package_id", description: "package_id", required: true })
     @ApiQuery({
         name: "provider",
         description: "OAuth provider",
@@ -181,7 +181,7 @@ export class OAuthCredentialsController {
     @ApiResponse({ status: 410, description: "Credentials are disabled" })
     @Post("fetch")
     async fetchForOAuth(
-        @Query("plugin_id") pluginId: string,
+        @Query("package_id") pluginId: string,
         @Query("provider") provider: string,
     ) {
         const credentials = await this.oauthClientsRepository.getCredentials(
@@ -240,7 +240,7 @@ export class OAuthCredentialsController {
 
         return {
             id: updated.id,
-            plugin_id: updated.pluginId,
+            package_id: updated.package_id,
             provider: updated.provider,
             client_id: updated.clientId,
             scopes: updated.scopes,
