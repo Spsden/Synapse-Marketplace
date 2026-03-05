@@ -148,6 +148,8 @@ export class OAuthClientsRepository {
             return null;
         }
 
+        console.log(data,"suraj")
+
         return this.mapToEntity(data);
     }
 
@@ -367,6 +369,7 @@ export class OAuthClientsRepository {
         clientSecret: string;
         redirectUrl: string;
         scopes: string[];
+        metadata?: Record<string, unknown>;
     } | null> {
 
         const client = await this.findByPluginAndProvider(package_id, provider);
@@ -384,6 +387,7 @@ export class OAuthClientsRepository {
             clientSecret,
             redirectUrl: this.getRedirectUrl(provider),
             scopes: client.scopes,
+            metadata: client.extras,
         };
     }
 

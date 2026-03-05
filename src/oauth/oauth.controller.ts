@@ -202,6 +202,7 @@ export class OAuthCredentialsController {
             client_secret: credentials.clientSecret,
             redirect_url: credentials.redirectUrl,
             scopes: credentials.scopes,
+            metadata: credentials.metadata,
         };
     }
 
