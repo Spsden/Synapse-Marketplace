@@ -19,6 +19,7 @@ import {
 } from "@nestjs/swagger";
 import { OAuthClientsRepository } from "./oauth-clients.repository";
 import { VaultService } from "../vault/vault.service";
+import { OAuthRedirectService } from "./oauth-redirect.service";
 import { OAuthProvider } from "./oauth-provider.enum";
 import { ResourceNotFoundException } from "../common/exceptions/resource-not-found.exception";
 
@@ -34,6 +35,7 @@ export class OAuthCredentialsController {
     constructor(
         private readonly oauthClientsRepository: OAuthClientsRepository,
         private readonly vaultService: VaultService,
+        private readonly oauthRedirectService: OAuthRedirectService,
     ) { }
 
     /**
@@ -200,7 +202,7 @@ export class OAuthCredentialsController {
         return {
             client_id: credentials.clientId,
             client_secret: credentials.clientSecret,
-            redirect_url: credentials.redirectUrl,
+            redirect_url: this.oauthRedirectService.getRedirectUrl(provider),
             scopes: credentials.scopes,
             metadata: credentials.metadata,
         };
