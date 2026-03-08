@@ -33,7 +33,7 @@ export class OAuthRedirectService {
                     'SERVER_URL configuration is required for HTTPS-only providers',
                 );
             }
-            return `${serverUrl}/oauth/callback/${provider}`;
+            return `${serverUrl}/api/v1/oauth/callback/${provider}`;
         }
         return `synapse://oauth/${provider}`;
     }

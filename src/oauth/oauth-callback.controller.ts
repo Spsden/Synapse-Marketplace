@@ -74,6 +74,7 @@ export class OAuthCallbackController {
             throw new BadRequestException(`Invalid provider: ${provider}`);
         }
 
+
         // Log the callback
         this.logger.log(
             `OAuth callback received - provider: ${provider}, ` +
@@ -97,6 +98,9 @@ export class OAuthCallbackController {
             );
             return res.redirect(errorUrl.toString());
         }
+
+        console.log('Received OAuth callback: suraj' )
+
 
         // Handle missing code without error
         if (!code) {

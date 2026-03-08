@@ -135,7 +135,7 @@ export class OAuthClientsRepository {
         provider: OAuthProvider,
     ): Promise<OAuthClient | null> {
 
-        console.log(package_id,"suraj")
+        console.log(package_id, "suraj")
         const { data, error } = await this.supabase
             .from("plugin_oauth_clients")
             .select("*")
@@ -148,7 +148,7 @@ export class OAuthClientsRepository {
             return null;
         }
 
-        console.log(data,"suraj")
+        console.log(data, "suraj")
 
         return this.mapToEntity(data);
     }
@@ -291,12 +291,12 @@ export class OAuthClientsRepository {
      * Compute the platform-owned redirect URL for a provider.
      * Redirect URLs are platform-controlled and not configurable by developers.
      */
-    getRedirectUrl(provider: OAuthProvider): string {
-        const baseUrl =
-            this.configService.get<string>("app.baseUrl") ||
-            "https://api.synapse.dev";
-        return `${baseUrl}/oauth/callback/${provider}`;
-    }
+    // getRedirectUrl(provider: OAuthProvider): string {
+    //     const baseUrl =
+    //         this.configService.get<string>("app.baseUrl") ||
+    //         `curl -v "https://synapsemarketplace-let8q0bnv-bentennison223-4156s-projects.vercel.app`;
+    //     return `${baseUrl}/api/v1/oauth/callback/${provider}`;
+    // }
 
     /**
      * Update existing OAuth client credentials.
@@ -382,10 +382,12 @@ export class OAuthClientsRepository {
             client.clientSecretEncrypted,
         );
 
+
         return {
             clientId: client.clientId,
             clientSecret,
-            redirectUrl: this.getRedirectUrl(provider),
+            // redirectUrl: this.getRedirectUrl(provider),
+            redirectUrl: "",
             scopes: client.scopes,
             metadata: client.extras,
         };
