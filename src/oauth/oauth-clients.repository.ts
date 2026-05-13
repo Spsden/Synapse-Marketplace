@@ -4,6 +4,7 @@ import {
     Inject,
     ForbiddenException,
     BadRequestException,
+    ConflictException,
 } from "@nestjs/common";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { ConfigService } from "@nestjs/config";
@@ -311,20 +312,12 @@ export class OAuthClientsRepository {
             dto.scopes ?? [],
         );
 
-        // 3️⃣ Enforce ONE active client per plugin+provider: deactivate existing
-        await this.supabase
-            .from("plugin_oauth_clients")
-            .update({ is_active: false, updated_at: new Date().toISOString() })
-            .eq("package_id", dto.package_id)
-            .eq("provider", dto.provider);
-
         // Encrypt the client secret before storing
         const clientSecretEncrypted = await this.vaultService.encrypt(
             dto.clientSecret,
         );
 
         const newClient = {
-            id: crypto.randomUUID(),
             package_id: dto.package_id,
             provider: dto.provider,
             client_id: dto.clientId,
@@ -339,11 +332,20 @@ export class OAuthClientsRepository {
 
         const { data, error } = await this.supabase
             .from("plugin_oauth_clients")
-            .insert(newClient)
+            .upsert(newClient, { onConflict: "package_id,provider" })
             .select()
             .single();
 
         if (error) {
+            if (
+                error.code === "23505" ||
+                error.message?.includes("unique constraint")
+            ) {
+                throw new ConflictException(
+                    `OAuth credentials already exist for ${dto.package_id}/${dto.provider}. ` +
+                    "Use update if you intend to modify existing credentials.",
+                );
+            }
             throw new Error(`Failed to create OAuth client: ${error.message}`);
         }
 

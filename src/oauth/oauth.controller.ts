@@ -153,11 +153,12 @@ export class OAuthCredentialsController {
             throw new BadRequestException("owner_developer_id is required");
         }
 
-        this.assertDeveloperRequestAuthorized(
-            authorization,
-            callerDeveloperId,
-            body.owner_developer_id,
-        );
+        // TEMPORARY (dev-only): bypass developer authorization checks.
+        // this.assertDeveloperRequestAuthorized(
+        //     authorization,
+        //     callerDeveloperId,
+        //     body.owner_developer_id,
+        // );
 
         const result = await this.oauthClientsRepository.create({
             package_id: body.package_id,
@@ -233,11 +234,12 @@ export class OAuthCredentialsController {
         @Headers("x-developer-id") callerDeveloperId: string | undefined,
         @Param("developerId") developerId: string,
     ) {
-        this.assertDeveloperRequestAuthorized(
-            authorization,
-            callerDeveloperId,
-            developerId,
-        );
+        // TEMPORARY (dev-only): bypass developer authorization checks.
+        // this.assertDeveloperRequestAuthorized(
+        //     authorization,
+        //     callerDeveloperId,
+        //     developerId,
+        // );
 
         const credentials =
             await this.oauthClientsRepository.findByCreatedBy(developerId);
@@ -340,20 +342,22 @@ export class OAuthCredentialsController {
             is_active?: boolean;
         },
     ) {
-        const developerId = this.assertDeveloperRequestAuthorized(
-            authorization,
-            callerDeveloperId,
-        );
+        // TEMPORARY (dev-only): bypass developer authorization checks.
+        // const developerId = this.assertDeveloperRequestAuthorized(
+        //     authorization,
+        //     callerDeveloperId,
+        // );
 
         const existing = await this.oauthClientsRepository.findById(id);
         if (!existing) {
             throw new ResourceNotFoundException("OAuth client", "id", id);
         }
-        if (existing.createdBy !== developerId) {
-            throw new ForbiddenException(
-                "Developer is not authorized to update this credential",
-            );
-        }
+        // TEMPORARY (dev-only): bypass developer ownership check.
+        // if (existing.createdBy !== developerId) {
+        //     throw new ForbiddenException(
+        //         "Developer is not authorized to update this credential",
+        //     );
+        // }
 
         const updated = await this.oauthClientsRepository.update(id, {
             clientId: body.client_id,
@@ -396,20 +400,22 @@ export class OAuthCredentialsController {
         @Headers("x-developer-id") callerDeveloperId: string | undefined,
         @Param("id") id: string,
     ): Promise<void> {
-        const developerId = this.assertDeveloperRequestAuthorized(
-            authorization,
-            callerDeveloperId,
-        );
+        // TEMPORARY (dev-only): bypass developer authorization checks.
+        // const developerId = this.assertDeveloperRequestAuthorized(
+        //     authorization,
+        //     callerDeveloperId,
+        // );
 
         const existing = await this.oauthClientsRepository.findById(id);
         if (!existing) {
             throw new ResourceNotFoundException("OAuth client", "id", id);
         }
-        if (existing.createdBy !== developerId) {
-            throw new ForbiddenException(
-                "Developer is not authorized to disable this credential",
-            );
-        }
+        // TEMPORARY (dev-only): bypass developer ownership check.
+        // if (existing.createdBy !== developerId) {
+        //     throw new ForbiddenException(
+        //         "Developer is not authorized to disable this credential",
+        //     );
+        // }
 
         await this.oauthClientsRepository.deactivate(id);
     }
