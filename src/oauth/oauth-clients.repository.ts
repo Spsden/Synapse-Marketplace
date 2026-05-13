@@ -11,6 +11,8 @@ import { OAuthProvider, isProviderSupported } from "./oauth-provider.enum";
 import { VaultService } from "../vault/vault.service";
 import { ResourceNotFoundException } from "../common/exceptions/resource-not-found.exception";
 
+export type ScopeMode = "required" | "optional" | "forbidden";
+
 /**
  * Platform-defined maximum allowed scopes per OAuth provider.
  * These limits prevent privilege escalation and ensure compliance with provider policies.
@@ -78,6 +80,7 @@ interface OAuthClient {
     updatedAt: Date;
     isActive: boolean;
     extras?: Record<string, unknown>;
+    scopeMode: ScopeMode;
 }
 
 /**
@@ -91,6 +94,7 @@ interface CreateOAuthClientDto {
     scopes: string[];
     createdBy: string;
     extras?: Record<string, unknown>;
+    scopeMode?: ScopeMode;
 }
 
 /**
@@ -102,6 +106,7 @@ interface UpdateOAuthClientDto {
     scopes?: string[];
     isActive?: boolean;
     extras?: Record<string, unknown>;
+    scopeMode?: ScopeMode;
 }
 
 /**
@@ -127,6 +132,60 @@ export class OAuthClientsRepository {
         );
     }
 
+    private defaultScopeMode(provider: OAuthProvider): ScopeMode {
+        // Notion can rely on integration-level capabilities without explicit scope param.
+        if (provider === OAuthProvider.NOTION) return "optional";
+        return "required";
+    }
+
+    private normalizeScopeMode(
+        mode: unknown,
+        provider: OAuthProvider,
+    ): ScopeMode {
+        if (
+            mode === "required" ||
+            mode === "optional" ||
+            mode === "forbidden"
+        ) {
+            return mode;
+        }
+        return this.defaultScopeMode(provider);
+    }
+
+    private extractScopeModeFromExtras(
+        extras: Record<string, unknown> | undefined,
+        provider: OAuthProvider,
+    ): ScopeMode {
+        return this.normalizeScopeMode(extras?.scope_mode, provider);
+    }
+
+    private applyScopeModePolicy(
+        provider: OAuthProvider,
+        scopeMode: ScopeMode,
+        scopes: string[],
+    ): string[] {
+        if (scopeMode === "forbidden") {
+            if (scopes.length > 0) {
+                throw new BadRequestException(
+                    `Provider ${provider} is configured with scope_mode=forbidden, but scopes were supplied.`,
+                );
+            }
+            return [];
+        }
+
+        if (scopeMode === "required" && scopes.length === 0) {
+            throw new BadRequestException(
+                `Provider ${provider} requires scopes but none were supplied.`,
+            );
+        }
+
+        if (scopes.length > 0) {
+            validateScopes(provider, scopes);
+        }
+
+        return scopes;
+    }
+
     /**
      * Find OAuth client credentials by plugin ID and provider.
      */
@@ -134,8 +193,6 @@ export class OAuthClientsRepository {
         package_id: string,
         provider: OAuthProvider,
     ): Promise<OAuthClient | null> {
-
-        console.log(package_id, "suraj")
         const { data, error } = await this.supabase
             .from("plugin_oauth_clients")
             .select("*")
@@ -147,8 +204,6 @@ export class OAuthClientsRepository {
         if (error || !data) {
             return null;
         }
-
-        console.log(data, "suraj")
 
         return this.mapToEntity(data);
     }
@@ -191,7 +246,7 @@ export class OAuthClientsRepository {
         const { data } = await this.supabase
             .from("plugin_oauth_clients")
             .select("*")
-            .eq("created_by", createdBy)
+            .eq("owner_developer_id", createdBy)
             .order("created_at", { ascending: false });
 
         return (data || []).map((item) => this.mapToEntity(item));
@@ -245,8 +300,16 @@ export class OAuthClientsRepository {
             );
         }
 
-        // 2️⃣ Validate scopes are within platform-defined limits
-        validateScopes(dto.provider, dto.scopes);
+        const scopeMode = this.normalizeScopeMode(dto.scopeMode, dto.provider);
+        const normalizedExtras: Record<string, unknown> = {
+            ...(dto.extras || {}),
+            scope_mode: scopeMode,
+        };
+        const effectiveScopes = this.applyScopeModePolicy(
+            dto.provider,
+            scopeMode,
+            dto.scopes ?? [],
+        );
 
         // 3️⃣ Enforce ONE active client per plugin+provider: deactivate existing
         await this.supabase
@@ -266,9 +329,9 @@ export class OAuthClientsRepository {
             provider: dto.provider,
             client_id: dto.clientId,
             client_secret_encrypted: clientSecretEncrypted,
-            scopes: dto.scopes,
+            scopes: effectiveScopes,
             owner_developer_id: dto.createdBy,
-            metadata: dto.extras || {},
+            metadata: normalizedExtras,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             is_active: true,
@@ -302,14 +365,46 @@ export class OAuthClientsRepository {
      * Update existing OAuth client credentials.
      */
     async update(id: string, dto: UpdateOAuthClientDto): Promise<OAuthClient> {
+        const existing = await this.findById(id);
+        if (!existing) {
+            throw new ResourceNotFoundException("OAuth client", "id", id);
+        }
+
         const updateData: any = {
             updated_at: new Date().toISOString(),
         };
 
         if (dto.clientId !== undefined) updateData.client_id = dto.clientId;
-        if (dto.scopes !== undefined) updateData.scopes = dto.scopes;
         if (dto.isActive !== undefined) updateData.is_active = dto.isActive;
-        if (dto.extras !== undefined) updateData.metadata = dto.extras;
+
+        const mergedExtras: Record<string, unknown> = {
+            ...(existing.extras || {}),
+            ...(dto.extras || {}),
+        };
+        if (dto.scopeMode !== undefined) {
+            mergedExtras.scope_mode = dto.scopeMode;
+        }
+        const scopeMode = this.extractScopeModeFromExtras(
+            mergedExtras,
+            existing.provider,
+        );
+        mergedExtras.scope_mode = scopeMode;
+
+        const modeChanged = scopeMode !== existing.scopeMode;
+        const candidateScopes = dto.scopes ?? existing.scopes;
+        const effectiveScopes = this.applyScopeModePolicy(
+            existing.provider,
+            scopeMode,
+            candidateScopes,
+        );
+
+        if (dto.scopes !== undefined || modeChanged) {
+            updateData.scopes = effectiveScopes;
+        }
+
+        if (dto.extras !== undefined || dto.scopeMode !== undefined) {
+            updateData.metadata = mergedExtras;
+        }
 
         // Encrypt new client secret if provided
         if (dto.clientSecret !== undefined) {
@@ -326,10 +421,6 @@ export class OAuthClientsRepository {
 
         if (error) {
             throw new Error(`Failed to update OAuth client: ${error.message}`);
-        }
-
-        if (!data) {
-            throw new ResourceNotFoundException("OAuth client", "id", id);
         }
 
         return this.mapToEntity(data);
@@ -369,6 +460,7 @@ export class OAuthClientsRepository {
         clientSecret: string;
         redirectUrl: string;
         scopes: string[];
+        scopeMode: ScopeMode;
         metadata?: Record<string, unknown>;
     } | null> {
 
@@ -389,6 +481,7 @@ export class OAuthClientsRepository {
             // redirectUrl: this.getRedirectUrl(provider),
             redirectUrl: "",
             scopes: client.scopes,
+            scopeMode: client.scopeMode,
             metadata: client.extras,
         };
     }
@@ -397,10 +490,14 @@ export class OAuthClientsRepository {
      * Map database row to OAuthClient entity.
      */
     private mapToEntity(data: any): OAuthClient {
+        const extras = (data.metadata || {}) as Record<string, unknown>;
+        const provider = data.provider as OAuthProvider;
+        const scopeMode = this.extractScopeModeFromExtras(extras, provider);
+
         return {
             id: data.id,
             package_id: data.package_id,
-            provider: data.provider as OAuthProvider,
+            provider,
             clientId: data.client_id,
             clientSecretEncrypted: data.client_secret_encrypted,
             scopes: data.scopes,
@@ -408,7 +505,8 @@ export class OAuthClientsRepository {
             createdAt: new Date(data.created_at),
             updatedAt: new Date(data.updated_at),
             isActive: data.is_active,
-            extras: data.metadata || {},
+            extras,
+            scopeMode,
         };
     }
 }

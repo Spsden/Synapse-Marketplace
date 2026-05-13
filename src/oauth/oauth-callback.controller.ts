@@ -99,9 +99,6 @@ export class OAuthCallbackController {
             return res.redirect(errorUrl.toString());
         }
 
-        console.log('Received OAuth callback: suraj' )
-
-
         // Handle missing code without error
         if (!code) {
             this.logger.warn(`OAuth callback for ${provider} missing code parameter`);
