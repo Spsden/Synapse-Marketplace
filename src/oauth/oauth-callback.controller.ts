@@ -113,6 +113,7 @@ export class OAuthCallbackController {
         }
 
         this.logger.log(`Redirecting to Synapse app for ${provider} OAuth completion`);
+        this.logger.debug(`Redirect URL: ${successUrl.toString()}`);
         return res.redirect(successUrl.toString());
     }
 }
