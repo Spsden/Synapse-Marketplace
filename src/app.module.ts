@@ -13,6 +13,7 @@ import { HealthModule } from './health';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { OAuthModule } from './oauth/oauth.module';
 import { VaultModule } from './vault/vault.module';
+import { McpRegistryModule } from './mcp-registry/mcp-registry.module';
 
 /**
  * Root application module.
@@ -42,6 +43,7 @@ import { VaultModule } from './vault/vault.module';
     DeveloperModule,
     AdminModule,
     OAuthModule,
+    McpRegistryModule,
   ],
   controllers: [],
   providers: [
@@ -74,6 +76,7 @@ export class AppModule implements NestModule {
       .addTag('Store', 'Public API for browsing and downloading published plugins')
       .addTag('Developer', 'API for developers to submit and manage plugins')
       .addTag('Admin', 'API for administrators to review and manage plugins')
+      .addTag('MCP Registry', 'Control plane for reviewed MCP runtime definitions')
       .addTag('Health', 'Health check endpoints for monitoring')
       .addTag('OAuth Credentials Vault', 'OAuth client credential storage for plugins')
       .addBearerAuth()

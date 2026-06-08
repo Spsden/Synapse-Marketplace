@@ -9,6 +9,7 @@ A production-ready, enterprise-grade plugin marketplace API for the Synapse Seco
 ## Features
 
 - **Plugin Marketplace**: Browse, search, and discover published plugins
+- **MCP Registry Control Plane**: Review and publish trusted MCP server definitions
 - **Version Management**: Semantic versioning with compatibility checking
 - **Developer Submission**: Upload .synx packages via multipart form upload
 - **Admin Review Workflow**: Approve/reject plugins with automated safety checks
@@ -150,14 +151,22 @@ http://localhost:3000/api-docs
 - `GET /store/versions/:versionId` - Get version details
 - `GET /store/plugins/:packageId/statistics` - Get plugin statistics
 
+### Public MCP Registry APIs (`/api/v1/mcp`)
+- `GET /mcp/registry` - Get published MCP runtime registry snapshot
+- `GET /mcp/servers` - List published MCP server definitions
+- `GET /mcp/servers/:serverId` - Get one published MCP server definition
+
 ### Developer APIs (`/api/v1/dev`)
 - `POST /dev/plugins/submit` - Submit a .synx plugin package
+- `POST /dev/mcp/servers/submit` - Submit an MCP server definition for review
 
 ### Admin APIs (`/api/v1/admin`)
 - `GET /admin/review-queue` - Get pending review items
 - `PATCH /admin/plugins/:versionId/verify` - Approve/reject a version
 - `POST /admin/plugins/:versionId/flag` - Flag a plugin for security
 - `DELETE /admin/plugins/:versionId/flag` - Unflag a plugin
+- `GET /admin/mcp/review-queue` - Get pending MCP registry submissions
+- `PATCH /admin/mcp/submissions/:submissionId/review` - Approve/reject an MCP registry submission
 
 ## .synx Package Format
 
