@@ -2,6 +2,10 @@
 
 A production-ready, enterprise-grade plugin marketplace API for the Synapse Second Mind application. Built with NestJS and TypeScript, using Supabase for database and storage.
 
+## Additional Docs
+
+- [Desktop MCP end-to-end runbook](./docs/DESKTOP_MCP_E2E.md)
+
 ## Features
 
 - **Plugin Marketplace**: Browse, search, and discover published plugins
