@@ -1,6 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class McpRegistryEntryResponseDto {
+  @ApiProperty({ example: 2 })
+  schemaVersion: number;
+
   @ApiProperty()
   id: string;
 
@@ -51,6 +54,27 @@ export class McpRegistryEntryResponseDto {
 
   @ApiPropertyOptional({ type: Object })
   capabilities?: Record<string, unknown> | null;
+
+  @ApiPropertyOptional({ type: Object })
+  upstream?: Record<string, unknown> | null;
+
+  @ApiPropertyOptional()
+  upstreamHash?: string | null;
+
+  @ApiProperty({ type: [Object] })
+  authProfiles: Record<string, unknown>[];
+
+  @ApiProperty({ type: [Object] })
+  artifacts: Record<string, unknown>[];
+
+  @ApiProperty({ type: [Object] })
+  deployments: Record<string, unknown>[];
+
+  @ApiProperty({ type: Object })
+  capabilityCatalog: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: Object })
+  cloudCertification?: Record<string, unknown> | null;
 
   @ApiProperty()
   publishedAt: Date;

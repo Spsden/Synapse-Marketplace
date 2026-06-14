@@ -1,13 +1,15 @@
-import { Body, Controller, Get, Param, Patch, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import {
   McpRegistryReviewItemDto,
   ReviewMcpRegistrySubmissionRequestDto,
 } from '../common/dto';
 import { McpRegistryService } from './mcp-registry.service';
+import { MarketplaceAdminGuard } from '../common/guards/marketplace-api-token.guard';
 
 @ApiTags('Admin', 'MCP Registry')
 @Controller('admin/mcp')
+@UseGuards(MarketplaceAdminGuard)
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class McpRegistryAdminController {
   constructor(private readonly mcpRegistryService: McpRegistryService) {}

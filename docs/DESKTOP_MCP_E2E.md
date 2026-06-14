@@ -37,13 +37,17 @@ The manual Notion flow uses `synapse-mcp-plane/dev/registry.desktop.json`, which
 
 ## Plugin artifact
 
-The packaged desktop test plugin is:
+The canonical plugin source is:
 
-`/Users/pratap/code/Synapse-Marketplace/com.notion.add-1.0.1.synx`
+`/Users/pratap/code/Synapse-SDK/plugins/notion`
 
-Source files live in:
+Build the package with:
 
-`/Users/pratap/code/Synapse-Marketplace/notion_mcp_plugin`
+```bash
+cd /Users/pratap/code/Synapse-SDK
+node cli/dist/index.js package plugins/notion \
+  --output /private/tmp/com.synapse.notion-1.0.2.synx
+```
 
 ## Optional Synapse desktop env overrides
 
@@ -146,45 +150,17 @@ Expected result:
 }
 ```
 
-## 5. Manual real Notion runtime call
+## 5. Inspect the real Notion descriptor
 
-The dev runtime defaults to `dev/registry.desktop.json`, which launches the real `@synapse/mcp-notion-server`.
-
-If you already have a Notion access token, you can validate the runtime directly without the app:
+The dev registry points to the official hosted server. Verify the runtime is
+serving its reviewed OAuth and deployment metadata:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:4777/call \
-  -H 'Content-Type: application/json' \
-  --data-binary '{
-    "pluginId": "com.notion.add",
-    "serverName": "notion",
-    "toolName": "notion-get-self",
-    "arguments": {},
-    "platform": "desktop",
-    "declaredServers": [
-      {
-        "name": "notion",
-        "tools": ["notion-get-self"]
-      }
-    ],
-    "authContext": {
-      "provider": "notion",
-      "accessToken": "'"$NOTION_ACCESS_TOKEN"'"
-    }
-  }' | jq .
+curl -sS http://127.0.0.1:4777/servers/notion | jq .
 ```
 
-Expected result with a valid token:
-
-1. `success: true`
-2. `data.user` contains the current Notion identity
-3. `data.source` is `notion-api`
-
-Expected result with a fake token:
-
-1. `success: false`
-2. `code: "EXECUTION_ERROR"`
-3. error text similar to `API token is invalid. (unauthorized, HTTP 401)`
+Do not substitute a normal Notion integration token. The hosted MCP server
+requires its own interactive MCP OAuth flow.
 
 ## 6. Manual Synapse desktop plugin flow
 
@@ -212,17 +188,18 @@ Use your desktop target if it is not macOS.
 
 Install:
 
-`/Users/pratap/code/Synapse-Marketplace/com.notion.add-1.0.1.synx`
+`/private/tmp/com.synapse.notion-1.0.2.synx`
 
 ### 6.4 Authenticate Notion
 
-The plugin uses Synapse OAuth for provider `notion`.
+The plugin uses the `notion` MCP OAuth connection. Synapse performs discovery,
+dynamic client registration, PKCE, and secure token storage.
 
 ### 6.5 Trigger the plugin
 
 Use the trigger:
 
-`add_to_notion_mcp`
+`add_to_notion`
 
 Provide input such as:
 
@@ -239,7 +216,7 @@ Expected product behavior:
 2. Synapse performs the Notion connectivity check
 3. the plugin calls `synapse.mcp.callTool("notion", ...)`
 4. a Notion page is created
-5. the plugin returns `Added to Notion via MCP`
+5. the plugin returns the created page result
 
 ## Troubleshooting
 

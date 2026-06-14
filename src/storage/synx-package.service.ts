@@ -133,6 +133,9 @@ export class SynxPackageService {
       const manifest = JSON.parse(manifestJson);
 
       // Basic validation - check required fields exist
+      if (!manifest.id) {
+        throw new Error("manifest.json missing required field: 'id'");
+      }
       if (!manifest.name) {
         throw new Error("manifest.json missing required field: 'name'");
       }

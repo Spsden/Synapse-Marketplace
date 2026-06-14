@@ -12,6 +12,7 @@ A production-ready, enterprise-grade plugin marketplace API for the Synapse Seco
 - **MCP Registry Control Plane**: Review and publish trusted MCP server definitions
 - **Version Management**: Semantic versioning with compatibility checking
 - **Developer Submission**: Upload .synx packages via multipart form upload
+- **MCP Registry v2**: Reviewed remote, desktop Node, and certified cloud Node deployments
 - **Admin Review Workflow**: Approve/reject plugins with automated safety checks
 - **Supabase Integration**: PostgreSQL database + CDN-backed storage
 - **Signed URLs**: Secure, time-limited download URLs
@@ -143,6 +144,11 @@ http://localhost:3000/api-docs
 ```
 
 ## API Endpoints
+
+Architecture and operations:
+
+- [`docs/PLUGIN_MCP_ARCHITECTURE_V2.md`](docs/PLUGIN_MCP_ARCHITECTURE_V2.md)
+- [`docs/NOTION_RESET_RUNBOOK.md`](docs/NOTION_RESET_RUNBOOK.md)
 
 ### Public Store APIs (`/api/v1/store`)
 - `GET /store/plugins` - List published plugins (with pagination, search, filters)

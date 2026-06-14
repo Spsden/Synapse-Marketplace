@@ -35,6 +35,11 @@ describe('McpRegistryService', () => {
     desktop: { transport: 'http' },
     cloud: { transport: 'http' },
     capabilities: { oauth: true },
+    schemaVersion: 1,
+    authProfiles: [],
+    artifacts: [],
+    deployments: [],
+    capabilityCatalog: { tools: ['notion-get-self'] },
     createdBy: 'seed@synapse.dev',
     createdAt: new Date('2026-06-01T00:00:00.000Z'),
     updatedAt: new Date('2026-06-01T00:00:00.000Z'),
@@ -61,6 +66,13 @@ describe('McpRegistryService', () => {
     desktop: { transport: 'http' },
     cloud: { transport: 'http' },
     capabilities: { oauth: true },
+    schemaVersion: 1,
+    authProfiles: [],
+    artifacts: [],
+    deployments: [],
+    capabilityCatalog: {
+      tools: ['notion-get-self', 'notion-create-pages'],
+    },
     submissionNotes: 'Add page creation support',
     createdBy: 'developer@example.com',
     status: McpRegistrySubmissionStatus.SUBMITTED,
@@ -108,9 +120,101 @@ describe('McpRegistryService', () => {
 
     const snapshot = await service.getPublishedRegistrySnapshot();
 
-    expect(snapshot.version).toBe('1');
+    expect(snapshot.version).toBe('2');
     expect(snapshot.servers).toHaveLength(1);
     expect(snapshot.servers[0].serverId).toBe('notion');
+  });
+
+  it('accepts a schema v2 remote deployment and preserves deployment metadata', async () => {
+    entriesRepository.findByServerId.mockResolvedValue(null);
+    submissionsRepository.findOpenByServerId.mockResolvedValue(null);
+    submissionsRepository.create.mockImplementation(async (dto) => ({
+      ...submission,
+      ...dto,
+      id: 'submission-v2',
+      status: McpRegistrySubmissionStatus.SUBMITTED,
+      reviewedBy: null,
+      reviewNotes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      reviewedAt: null,
+    }));
+
+    await service.submitServerDefinition({
+      schemaVersion: 2,
+      serverId: 'notion',
+      displayName: 'Notion MCP',
+      currentVersion: 'provider-managed',
+      maintainerName: 'Notion',
+      maintainerKind: 'official',
+      trustLevel: 'official',
+      source: {
+        type: 'remote-mcp',
+        url: 'https://mcp.notion.com/mcp',
+      },
+      auth: { type: 'mcp-oauth', provider: 'notion' },
+      tools: ['notion-get-self', 'notion-create-pages'],
+      runtimeTargets: ['provider-remote'],
+      platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
+      deployments: [
+        {
+          id: 'notion-http',
+          kind: 'remote-http',
+          runtimeTarget: 'provider-remote',
+          transport: 'streamable-http',
+          url: 'https://mcp.notion.com/mcp',
+          platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
+        },
+      ],
+      capabilityCatalog: {
+        tools: ['notion-get-self', 'notion-create-pages'],
+      },
+      createdBy: 'pratap',
+    });
+
+    expect(submissionsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        schemaVersion: 2,
+        deployments: [
+          expect.objectContaining({
+            kind: 'remote-http',
+            url: 'https://mcp.notion.com/mcp',
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('rejects Python artifacts in schema v2', async () => {
+    await expect(
+      service.submitServerDefinition({
+        schemaVersion: 2,
+        serverId: 'python-server',
+        displayName: 'Python MCP',
+        currentVersion: '1.0.0',
+        maintainerName: 'Community',
+        maintainerKind: 'community',
+        trustLevel: 'community-reviewed',
+        source: { type: 'github' },
+        tools: ['example'],
+        runtimeTargets: ['desktop-node'],
+        platforms: ['macos'],
+        artifacts: [
+          {
+            id: 'python',
+            runtime: 'python',
+          },
+        ],
+        deployments: [
+          {
+            id: 'desktop',
+            kind: 'node-stdio',
+            artifactId: 'python',
+          },
+        ],
+        createdBy: 'developer@example.com',
+      }),
+    ).rejects.toThrow('Only Node artifacts are accepted');
   });
 
   it('creates an update submission when the server already exists', async () => {

@@ -44,7 +44,7 @@ export class McpRegistryService {
     }, null);
 
     return new McpRegistrySnapshotResponseDto({
-      version: '1',
+      version: '2',
       updatedAt: (updatedAt ?? new Date()).toISOString(),
       servers: entries.map((entry) => this.toResponse(entry)),
     });
@@ -66,6 +66,7 @@ export class McpRegistryService {
   async submitServerDefinition(
     dto: SubmitMcpRegistryServerRequestDto,
   ): Promise<McpRegistryReviewItemDto> {
+    this.validateServerDefinition(dto);
     const openSubmission = await this.submissionsRepository.findOpenByServerId(
       dto.serverId,
     );
@@ -147,6 +148,18 @@ export class McpRegistryService {
       desktop: dto.desktop ?? null,
       cloud: dto.cloud ?? null,
       capabilities: dto.capabilities ?? null,
+      schemaVersion: dto.schemaVersion ?? 1,
+      upstream: dto.upstream ?? null,
+      upstreamHash: dto.upstreamHash ?? null,
+      authProfiles: dto.authProfiles ? [...dto.authProfiles] : [],
+      artifacts: dto.artifacts ? [...dto.artifacts] : [],
+      deployments: dto.deployments
+        ? [...dto.deployments]
+        : this.buildLegacyDeployments(dto),
+      capabilityCatalog: dto.capabilityCatalog ?? {
+        tools: [...dto.tools],
+      },
+      cloudCertification: dto.cloudCertification ?? null,
       submissionNotes: dto.submissionNotes ?? null,
       createdBy: dto.createdBy,
     };
@@ -222,6 +235,14 @@ export class McpRegistryService {
       desktop: submission.desktop ?? null,
       cloud: submission.cloud ?? null,
       capabilities: submission.capabilities ?? null,
+      schemaVersion: submission.schemaVersion,
+      upstream: submission.upstream ?? null,
+      upstreamHash: submission.upstreamHash ?? null,
+      authProfiles: [...submission.authProfiles],
+      artifacts: [...submission.artifacts],
+      deployments: [...submission.deployments],
+      capabilityCatalog: submission.capabilityCatalog,
+      cloudCertification: submission.cloudCertification ?? null,
       createdBy,
       updatedBy,
       publishedAt,
@@ -254,6 +275,14 @@ export class McpRegistryService {
       desktop: entry.desktop ?? null,
       cloud: entry.cloud ?? null,
       capabilities: entry.capabilities ?? null,
+      schemaVersion: entry.schemaVersion,
+      upstream: entry.upstream ?? null,
+      upstreamHash: entry.upstreamHash ?? null,
+      authProfiles: [...entry.authProfiles],
+      artifacts: [...entry.artifacts],
+      deployments: [...entry.deployments],
+      capabilityCatalog: entry.capabilityCatalog,
+      cloudCertification: entry.cloudCertification ?? null,
       publishedAt: entry.publishedAt,
     });
   }
@@ -273,5 +302,151 @@ export class McpRegistryService {
       createdAt: submission.createdAt,
       status: submission.status,
     });
+  }
+
+  private validateServerDefinition(dto: SubmitMcpRegistryServerRequestDto): void {
+    if ((dto.schemaVersion ?? 1) !== 2) {
+      return;
+    }
+
+    if (!dto.deployments?.length) {
+      throw new PluginStoreException(
+        'MCP registry schema v2 requires at least one deployment.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const artifactIds = new Set<string>();
+    for (const [index, artifact] of (dto.artifacts ?? []).entries()) {
+      const id = this.readRequiredString(artifact, 'id', `artifacts[${index}]`);
+      if (artifactIds.has(id)) {
+        throw new PluginStoreException(
+          `Duplicate MCP artifact id "${id}".`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      artifactIds.add(id);
+
+      const runtime = this.readRequiredString(
+        artifact,
+        'runtime',
+        `artifacts[${index}]`,
+      );
+      if (runtime !== 'node') {
+        throw new PluginStoreException(
+          `Unsupported MCP artifact runtime "${runtime}". Only Node artifacts are accepted.`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+
+    const deploymentIds = new Set<string>();
+    for (const [index, deployment] of dto.deployments.entries()) {
+      const path = `deployments[${index}]`;
+      const id = this.readRequiredString(deployment, 'id', path);
+      if (deploymentIds.has(id)) {
+        throw new PluginStoreException(
+          `Duplicate MCP deployment id "${id}".`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      deploymentIds.add(id);
+
+      const kind = this.readRequiredString(deployment, 'kind', path);
+      const supportedKinds = [
+        'remote-http',
+        'node-stdio',
+        'synapse-cloud-node',
+      ];
+      if (!supportedKinds.includes(kind)) {
+        throw new PluginStoreException(
+          `Unsupported Marketplace deployment kind "${kind}".`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (kind === 'remote-http') {
+        const url = this.readRequiredString(deployment, 'url', path);
+        if (!url.startsWith('https://')) {
+          throw new PluginStoreException(
+            `${path}.url must use HTTPS.`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      } else {
+        const artifactId = this.readRequiredString(deployment, 'artifactId', path);
+        if (!artifactIds.has(artifactId)) {
+          throw new PluginStoreException(
+            `${path} references unknown artifact "${artifactId}".`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+    }
+  }
+
+  private readRequiredString(
+    value: Record<string, unknown>,
+    key: string,
+    path: string,
+  ): string {
+    const result = value[key];
+    if (typeof result !== 'string' || result.trim().length === 0) {
+      throw new PluginStoreException(
+        `${path}.${key} is required.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return result;
+  }
+
+  private buildLegacyDeployments(
+    dto: SubmitMcpRegistryServerRequestDto,
+  ): Record<string, unknown>[] {
+    const deployments: Record<string, unknown>[] = [];
+    const sourceType = dto.source?.type;
+    const sourceUrl = dto.source?.url;
+
+    if (
+      sourceType === 'remote-http' &&
+      typeof sourceUrl === 'string' &&
+      sourceUrl.startsWith('https://')
+    ) {
+      deployments.push({
+        id: 'provider-remote',
+        kind: 'remote-http',
+        runtimeTarget: 'provider-remote',
+        transport: 'streamable-http',
+        url: sourceUrl,
+        platforms: [...dto.platforms],
+        priority: 10,
+      });
+    }
+
+    if (dto.desktop) {
+      deployments.push({
+        id: 'desktop-node',
+        kind: 'node-stdio',
+        runtimeTarget: 'desktop-node',
+        platforms: dto.platforms.filter((platform) =>
+          ['macos', 'windows', 'linux'].includes(platform),
+        ),
+        config: dto.desktop,
+        priority: 20,
+      });
+    }
+
+    if (dto.cloud) {
+      deployments.push({
+        id: 'legacy-cloud',
+        kind: 'legacy-cloud-worker',
+        runtimeTarget: 'cloud-worker',
+        platforms: [...dto.platforms],
+        config: dto.cloud,
+        priority: 30,
+      });
+    }
+
+    return deployments;
   }
 }

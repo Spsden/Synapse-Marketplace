@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsObject,
   IsOptional,
+  IsInt,
   IsString,
   IsUrl,
   Matches,
@@ -16,6 +17,15 @@ import {
 const SERVER_ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}$/;
 
 export class SubmitMcpRegistryServerRequestDto {
+  @ApiPropertyOptional({
+    example: 2,
+    description: 'Synapse MCP catalog schema version. Omitted legacy submissions use version 1.',
+  })
+  @IsOptional()
+  @IsInt()
+  @IsIn([1, 2])
+  schemaVersion?: number;
+
   @ApiProperty({
     example: 'notion',
     description: 'Stable runtime registry identifier used by plugins.',
@@ -134,6 +144,65 @@ export class SubmitMcpRegistryServerRequestDto {
   @IsOptional()
   @IsObject()
   capabilities?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: 'Original official MCP registry document or other upstream provenance.',
+  })
+  @IsOptional()
+  @IsObject()
+  upstream?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: 'SHA-256 digest of the canonical upstream document.',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^sha256-[a-f0-9]{64}$/)
+  upstreamHash?: string;
+
+  @ApiPropertyOptional({
+    description: 'Named authentication profiles referenced by deployments.',
+    type: [Object],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsObject({ each: true })
+  authProfiles?: Record<string, unknown>[];
+
+  @ApiPropertyOptional({
+    description: 'Immutable reviewed artifacts built from npm, GitHub, OCI, or Synapse sources.',
+    type: [Object],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsObject({ each: true })
+  artifacts?: Record<string, unknown>[];
+
+  @ApiPropertyOptional({
+    description: 'Platform-specific execution variants for this logical MCP server.',
+    type: [Object],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsObject({ each: true })
+  deployments?: Record<string, unknown>[];
+
+  @ApiPropertyOptional({
+    description: 'Approved tools and future MCP resources, prompts, tasks, and app capabilities.',
+  })
+  @IsOptional()
+  @IsObject()
+  capabilityCatalog?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: 'Cloud Node certification evidence and policy.',
+  })
+  @IsOptional()
+  @IsObject()
+  cloudCertification?: Record<string, unknown>;
 
   @ApiPropertyOptional()
   @IsOptional()

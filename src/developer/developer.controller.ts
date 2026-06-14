@@ -6,11 +6,13 @@ import {
   UsePipes,
   ValidationPipe,
   Body,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { DeveloperService } from './developer.service';
 import { PluginDetailResponse } from '../common/dto/plugin-detail-response.dto';
+import { MarketplaceDeveloperGuard } from '../common/guards/marketplace-api-token.guard';
 
 /**
  * Developer API controller for plugin submissions.
@@ -23,6 +25,7 @@ import { PluginDetailResponse } from '../common/dto/plugin-detail-response.dto';
  */
 @ApiTags('Developer')
 @Controller('dev')
+@UseGuards(MarketplaceDeveloperGuard)
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class DeveloperController {
   constructor(private readonly developerService: DeveloperService) {}

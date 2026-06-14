@@ -78,6 +78,14 @@ export class McpRegistryEntriesRepository {
       desktop: dto.desktop ?? null,
       cloud: dto.cloud ?? null,
       capabilities: dto.capabilities ?? null,
+      schema_version: dto.schemaVersion ?? 1,
+      upstream: dto.upstream ?? null,
+      upstream_hash: dto.upstreamHash ?? null,
+      auth_profiles: dto.authProfiles ?? [],
+      artifacts: dto.artifacts ?? [],
+      deployments: dto.deployments ?? [],
+      capability_catalog: dto.capabilityCatalog ?? {},
+      cloud_certification: dto.cloudCertification ?? null,
       created_by: dto.createdBy ?? null,
       updated_by: dto.updatedBy ?? dto.createdBy ?? null,
       published_at: (dto.publishedAt ?? new Date()).toISOString(),
@@ -115,6 +123,18 @@ export class McpRegistryEntriesRepository {
     if (dto.desktop !== undefined) payload.desktop = dto.desktop;
     if (dto.cloud !== undefined) payload.cloud = dto.cloud;
     if (dto.capabilities !== undefined) payload.capabilities = dto.capabilities;
+    if (dto.schemaVersion !== undefined) payload.schema_version = dto.schemaVersion;
+    if (dto.upstream !== undefined) payload.upstream = dto.upstream;
+    if (dto.upstreamHash !== undefined) payload.upstream_hash = dto.upstreamHash;
+    if (dto.authProfiles !== undefined) payload.auth_profiles = dto.authProfiles;
+    if (dto.artifacts !== undefined) payload.artifacts = dto.artifacts;
+    if (dto.deployments !== undefined) payload.deployments = dto.deployments;
+    if (dto.capabilityCatalog !== undefined) {
+      payload.capability_catalog = dto.capabilityCatalog;
+    }
+    if (dto.cloudCertification !== undefined) {
+      payload.cloud_certification = dto.cloudCertification;
+    }
     if (dto.createdBy !== undefined) payload.created_by = dto.createdBy;
     if (dto.updatedBy !== undefined) payload.updated_by = dto.updatedBy;
     if (dto.publishedAt !== undefined) {
@@ -154,6 +174,14 @@ export class McpRegistryEntriesRepository {
       desktop: (data.desktop ?? null) as Record<string, unknown> | null,
       cloud: (data.cloud ?? null) as Record<string, unknown> | null,
       capabilities: (data.capabilities ?? null) as Record<string, unknown> | null,
+      schemaVersion: Number(data.schema_version ?? 1),
+      upstream: (data.upstream ?? null) as Record<string, unknown> | null,
+      upstreamHash: data.upstream_hash ?? null,
+      authProfiles: Array.isArray(data.auth_profiles) ? [...data.auth_profiles] : [],
+      artifacts: Array.isArray(data.artifacts) ? [...data.artifacts] : [],
+      deployments: Array.isArray(data.deployments) ? [...data.deployments] : [],
+      capabilityCatalog: (data.capability_catalog ?? {}) as Record<string, unknown>,
+      cloudCertification: (data.cloud_certification ?? null) as Record<string, unknown> | null,
       createdBy: data.created_by,
       updatedBy: data.updated_by,
       createdAt: new Date(data.created_at),

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PluginsService } from '../plugins/plugins.service';
 import { SynxPackageService } from '../storage/synx-package.service';
 import { StorageService } from '../storage/storage.service';
@@ -48,6 +48,13 @@ export class DeveloperService {
     file: Express.Multer.File,
     packageId: string,
   ): Promise<PluginDetailResponse> {
+    if (!file?.buffer) {
+      throw new BadRequestException('A .synx file is required.');
+    }
+    if (!packageId?.trim()) {
+      throw new BadRequestException('packageId is required.');
+    }
+
     this.logger.log(`Received .synx submission: ${file.originalname} (${file.size} bytes)`);
 
     // Track uploaded resources for cleanup on failure
@@ -66,6 +73,14 @@ export class DeveloperService {
 
       // 2. Get metadata from manifest
       const manifest = pkg.manifest;
+      if (typeof manifest.id !== 'string' || manifest.id.trim().length === 0) {
+        throw new BadRequestException('manifest.id is required.');
+      }
+      if (manifest.id !== packageId) {
+        throw new BadRequestException(
+          `packageId "${packageId}" does not match manifest.id "${manifest.id}".`,
+        );
+      }
       const version = manifest.version || '1.0.0';
       const name = manifest.name || packageId;
       const description = manifest.description || '';

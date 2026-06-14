@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "serverId": "notion",
+  "displayName": "Notion MCP",
+  "description": "Official hosted Notion MCP server.",
+  "currentVersion": "1.0.0",
+  "maintainerName": "Notion",
+  "maintainerKind": "official",
+  "trustLevel": "official",
+  "documentationUrl": "https://developers.notion.com/guides/mcp/get-started-with-mcp",
+  "source": {
+    "type": "remote-http",
+    "url": "https://mcp.notion.com/mcp",
+    "transport": "streamable-http"
+  },
+  "auth": {
+    "type": "mcp-oauth",
+    "provider": "notion"
+  },
+  "tools": ["notion-get-self", "notion-create-pages"],
+  "runtimeTargets": ["provider-remote"],
+  "platforms": ["macos", "windows", "linux", "ios", "android"],
+  "authProfiles": [
+    {
+      "id": "notion-mcp-oauth",
+      "type": "mcp-oauth",
+      "provider": "notion",
+      "delivery": "authorization-header"
+    }
+  ],
+  "deployments": [
+    {
+      "id": "notion-provider-remote",
+      "kind": "remote-http",
+      "runtimeTarget": "provider-remote",
+      "transport": "streamable-http",
+      "url": "https://mcp.notion.com/mcp",
+      "platforms": ["macos", "windows", "linux", "ios", "android"],
+      "priority": 10,
+      "authProfileId": "notion-mcp-oauth"
+    }
+  ],
+  "capabilityCatalog": {
+    "tools": ["notion-get-self", "notion-create-pages"]
+  },
+  "submissionNotes": "Official hosted server is authoritative. The legacy local Notion server is not a production deployment.",
+  "createdBy": "synapse-system"
+}
