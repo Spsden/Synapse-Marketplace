@@ -190,28 +190,37 @@ plugin.synx
 ### manifest.json Schema
 ```json
 {
+  "$schema": "https://synapse.dev/schemas/manifest.schema.json",
+  "manifestVersion": 2,
+  "id": "com.synapse.task-manager",
   "name": "Task Manager",
   "description": "Manage your tasks with AI",
   "version": "1.0.0",
-  "minAppVersion": "1.0.0",
-  "author": {
-    "name": "Synapse Team",
-    "email": "dev@synapse.com"
+  "author": "Synapse Team",
+  "security": {
+    "allowedDomains": ["api.example.com"],
+    "permissions": ["network"]
   },
-  "entryPoint": "plugin.js",
-  "icon": "icon.png",
-  "permissions": [
-    "storage:read",
-    "network:https://api.example.com"
-  ],
-  "capabilities": {
-    "transientStorage": true,
-    "persistentStorage": false
-  },
-  "triggers": {
-    "voiceIntents": ["create_task", "list_tasks"],
-    "screenshotIntents": ["analyze_screenshot"]
-  }
+  "connections": [],
+  "actions": [
+    {
+      "id": "create_task",
+      "triggers": ["create_task"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" }
+        },
+        "required": ["title"]
+      },
+      "requirements": [
+        {
+          "kind": "network",
+          "domains": ["api.example.com"]
+        }
+      ]
+    }
+  ]
 }
 ```
 

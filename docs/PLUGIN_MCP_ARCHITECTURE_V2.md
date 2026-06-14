@@ -59,8 +59,8 @@ MCP OAuth is distinct from a provider's normal API OAuth integration. Hosted
 MCP servers may require RFC 9470 discovery, RFC 8414 metadata, dynamic client
 registration, PKCE, and refresh-token rotation.
 
-## Compatibility
+## Manifest contract
 
-Manifest v1 remains readable. The host derives legacy `triggers`,
-`inputSchema`, and `mcpServers` views from manifest v2 actions until all app
-surfaces consume action contracts directly.
+Synapse accepts manifest v2 packages only. Runtime trigger, input-schema, and
+MCP allowlist views are derived from action contracts; legacy top-level
+`triggers`, `inputSchema`, `auth`, and `mcpServers` fields are rejected.
