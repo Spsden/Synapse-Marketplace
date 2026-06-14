@@ -3,6 +3,7 @@ import {
   McpRegistryEntryResponseDto,
   McpRegistryReviewItemDto,
   McpRegistrySnapshotResponseDto,
+  ImportOfficialMcpServerRequestDto,
   ReviewMcpRegistrySubmissionRequestDto,
   SubmitMcpRegistryServerRequestDto,
 } from '../common/dto';
@@ -24,6 +25,7 @@ import {
 } from '../common/exceptions';
 import { McpRegistryEntriesRepository } from './mcp-registry-entries.repository';
 import { McpRegistrySubmissionsRepository } from './mcp-registry-submissions.repository';
+import { importOfficialMcpServer } from './official-mcp-server-importer';
 
 @Injectable()
 export class McpRegistryService {
@@ -89,6 +91,14 @@ export class McpRegistryService {
     return this.toReviewItem(submission);
   }
 
+  async importOfficialServerDefinition(
+    dto: ImportOfficialMcpServerRequestDto,
+  ): Promise<McpRegistryReviewItemDto> {
+    return this.submitServerDefinition(
+      importOfficialMcpServer(dto.server, dto.overlay),
+    );
+  }
+
   async getReviewQueue(): Promise<McpRegistryReviewItemDto[]> {
     const submissions = await this.submissionsRepository.findInReviewQueue();
     return submissions.map((submission) => this.toReviewItem(submission));
@@ -151,10 +161,10 @@ export class McpRegistryService {
       schemaVersion: dto.schemaVersion ?? 1,
       upstream: dto.upstream ?? null,
       upstreamHash: dto.upstreamHash ?? null,
-      authProfiles: dto.authProfiles ? [...dto.authProfiles] : [],
-      artifacts: dto.artifacts ? [...dto.artifacts] : [],
+      authProfiles: dto.authProfiles?.map((profile) => ({ ...profile })) ?? [],
+      artifacts: dto.artifacts?.map((artifact) => ({ ...artifact })) ?? [],
       deployments: dto.deployments
-        ? [...dto.deployments]
+        ? dto.deployments.map((deployment) => ({ ...deployment }))
         : this.buildLegacyDeployments(dto),
       capabilityCatalog: dto.capabilityCatalog ?? {
         tools: [...dto.tools],
@@ -318,7 +328,7 @@ export class McpRegistryService {
 
     const artifactIds = new Set<string>();
     for (const [index, artifact] of (dto.artifacts ?? []).entries()) {
-      const id = this.readRequiredString(artifact, 'id', `artifacts[${index}]`);
+      const id = artifact.id;
       if (artifactIds.has(id)) {
         throw new PluginStoreException(
           `Duplicate MCP artifact id "${id}".`,
@@ -327,11 +337,7 @@ export class McpRegistryService {
       }
       artifactIds.add(id);
 
-      const runtime = this.readRequiredString(
-        artifact,
-        'runtime',
-        `artifacts[${index}]`,
-      );
+      const runtime = artifact.runtime;
       if (runtime !== 'node') {
         throw new PluginStoreException(
           `Unsupported MCP artifact runtime "${runtime}". Only Node artifacts are accepted.`,
@@ -343,7 +349,7 @@ export class McpRegistryService {
     const deploymentIds = new Set<string>();
     for (const [index, deployment] of dto.deployments.entries()) {
       const path = `deployments[${index}]`;
-      const id = this.readRequiredString(deployment, 'id', path);
+      const id = deployment.id;
       if (deploymentIds.has(id)) {
         throw new PluginStoreException(
           `Duplicate MCP deployment id "${id}".`,
@@ -352,7 +358,7 @@ export class McpRegistryService {
       }
       deploymentIds.add(id);
 
-      const kind = this.readRequiredString(deployment, 'kind', path);
+      const kind = deployment.kind;
       const supportedKinds = [
         'remote-http',
         'node-stdio',
@@ -366,7 +372,13 @@ export class McpRegistryService {
       }
 
       if (kind === 'remote-http') {
-        const url = this.readRequiredString(deployment, 'url', path);
+        const url = deployment.url;
+        if (!url) {
+          throw new PluginStoreException(
+            `${path}.url is required.`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
         if (!url.startsWith('https://')) {
           throw new PluginStoreException(
             `${path}.url must use HTTPS.`,
@@ -374,7 +386,13 @@ export class McpRegistryService {
           );
         }
       } else {
-        const artifactId = this.readRequiredString(deployment, 'artifactId', path);
+        const artifactId = deployment.artifactId;
+        if (!artifactId) {
+          throw new PluginStoreException(
+            `${path}.artifactId is required.`,
+            HttpStatus.BAD_REQUEST,
+          );
+        }
         if (!artifactIds.has(artifactId)) {
           throw new PluginStoreException(
             `${path} references unknown artifact "${artifactId}".`,
@@ -383,21 +401,6 @@ export class McpRegistryService {
         }
       }
     }
-  }
-
-  private readRequiredString(
-    value: Record<string, unknown>,
-    key: string,
-    path: string,
-  ): string {
-    const result = value[key];
-    if (typeof result !== 'string' || result.trim().length === 0) {
-      throw new PluginStoreException(
-        `${path}.${key} is required.`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    return result;
   }
 
   private buildLegacyDeployments(

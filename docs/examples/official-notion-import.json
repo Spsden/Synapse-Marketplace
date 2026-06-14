@@ -1,0 +1,33 @@
+{
+  "server": {
+    "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+    "name": "com.notion/notion",
+    "title": "Notion MCP",
+    "description": "Official hosted Notion MCP server.",
+    "version": "1.0.0",
+    "websiteUrl": "https://developers.notion.com/guides/mcp/get-started-with-mcp",
+    "remotes": [
+      {
+        "type": "streamable-http",
+        "url": "https://mcp.notion.com/mcp"
+      }
+    ]
+  },
+  "overlay": {
+    "serverId": "notion",
+    "tools": ["notion-get-self", "notion-create-pages"],
+    "createdBy": "synapse-system",
+    "maintainerName": "Notion",
+    "maintainerKind": "official",
+    "trustLevel": "official",
+    "authProfiles": [
+      {
+        "id": "notion-mcp-oauth",
+        "type": "mcp-oauth",
+        "provider": "notion",
+        "delivery": "authorization-header"
+      }
+    ],
+    "submissionNotes": "Imported from official server.json and reviewed by Synapse."
+  }
+}

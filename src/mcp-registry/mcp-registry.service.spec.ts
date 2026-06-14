@@ -203,12 +203,18 @@ describe('McpRegistryService', () => {
           {
             id: 'python',
             runtime: 'python',
+            source: {
+              type: 'github',
+              url: 'https://example.invalid/python',
+            },
           },
         ],
         deployments: [
           {
             id: 'desktop',
             kind: 'node-stdio',
+            runtimeTarget: 'desktop-node',
+            platforms: ['macos'],
             artifactId: 'python',
           },
         ],

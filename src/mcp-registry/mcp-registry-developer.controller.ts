@@ -1,6 +1,7 @@
-import { Body, Controller, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
+  ImportOfficialMcpServerRequestDto,
   McpRegistryReviewItemDto,
   SubmitMcpRegistryServerRequestDto,
 } from '../common/dto';
@@ -10,7 +11,6 @@ import { MarketplaceDeveloperGuard } from '../common/guards/marketplace-api-toke
 @ApiTags('Developer', 'MCP Registry')
 @Controller('dev/mcp')
 @UseGuards(MarketplaceDeveloperGuard)
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class McpRegistryDeveloperController {
   constructor(private readonly mcpRegistryService: McpRegistryService) {}
 
@@ -24,5 +24,17 @@ export class McpRegistryDeveloperController {
     @Body() body: SubmitMcpRegistryServerRequestDto,
   ): Promise<McpRegistryReviewItemDto> {
     return this.mcpRegistryService.submitServerDefinition(body);
+  }
+
+  @Post('servers/import-official')
+  @ApiOperation({
+    summary: 'Import official MCP server.json with a Synapse review overlay',
+    description:
+      'Converts official remote and npm stdio metadata into a schema v2 submission. Python and unresolved command inputs are rejected.',
+  })
+  async importOfficialServerDefinition(
+    @Body() body: ImportOfficialMcpServerRequestDto,
+  ): Promise<McpRegistryReviewItemDto> {
+    return this.mcpRegistryService.importOfficialServerDefinition(body);
   }
 }

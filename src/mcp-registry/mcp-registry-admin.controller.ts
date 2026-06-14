@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import {
   McpRegistryReviewItemDto,
@@ -10,7 +10,6 @@ import { MarketplaceAdminGuard } from '../common/guards/marketplace-api-token.gu
 @ApiTags('Admin', 'MCP Registry')
 @Controller('admin/mcp')
 @UseGuards(MarketplaceAdminGuard)
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class McpRegistryAdminController {
   constructor(private readonly mcpRegistryService: McpRegistryService) {}
 

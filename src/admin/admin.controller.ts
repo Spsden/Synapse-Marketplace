@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Delete, Param, Query, Body, UsePipes, ValidationPipe, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Param, Query, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { PluginReviewService } from '../plugins/plugin-review.service';
 import { PluginsService } from '../plugins/plugins.service';
@@ -18,7 +18,6 @@ import { MarketplaceAdminGuard } from '../common/guards/marketplace-api-token.gu
 @ApiTags('Admin')
 @Controller('admin')
 @UseGuards(MarketplaceAdminGuard)
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class AdminController {
   constructor(
     private readonly reviewService: PluginReviewService,

@@ -6,6 +6,7 @@ export * from './plugin-review-item.dto';
 export * from './review-decision-request.dto';
 export * from './submit-plugin-request.dto';
 export * from './submit-mcp-registry-server-request.dto';
+export * from './import-official-mcp-server-request.dto';
 export * from './review-mcp-registry-submission-request.dto';
 export * from './mcp-registry-entry-response.dto';
 export * from './mcp-registry-review-item.dto';

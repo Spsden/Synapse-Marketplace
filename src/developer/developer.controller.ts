@@ -3,8 +3,6 @@ import {
   Post,
   UseInterceptors,
   UploadedFile,
-  UsePipes,
-  ValidationPipe,
   Body,
   UseGuards,
 } from '@nestjs/common';
@@ -26,7 +24,6 @@ import { MarketplaceDeveloperGuard } from '../common/guards/marketplace-api-toke
 @ApiTags('Developer')
 @Controller('dev')
 @UseGuards(MarketplaceDeveloperGuard)
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class DeveloperController {
   constructor(private readonly developerService: DeveloperService) {}
 

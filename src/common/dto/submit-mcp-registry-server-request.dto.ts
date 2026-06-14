@@ -12,9 +12,129 @@ import {
   IsUrl,
   Matches,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 const SERVER_ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}$/;
+
+export class McpAuthProfileRequestDto {
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+
+  @IsString()
+  @IsIn(['oauth2-user', 'api-key', 'mcp-oauth', 'none'])
+  type: string;
+
+  @IsOptional()
+  @IsString()
+  provider?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn([
+    'authorization-header',
+    'environment',
+    'ephemeral-file',
+    'mcp-protocol',
+  ])
+  delivery?: string;
+
+  @IsOptional()
+  @IsObject()
+  config?: Record<string, unknown>;
+}
+
+export class McpArtifactRequestDto {
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+
+  @IsString()
+  @IsIn(['node'])
+  runtime: string;
+
+  @IsObject()
+  source: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  digest?: string;
+
+  @IsOptional()
+  @IsString()
+  entrypoint?: string;
+
+  @IsOptional()
+  @IsString()
+  nodeVersion?: string;
+}
+
+export class McpDeploymentRequestDto {
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+
+  @IsString()
+  @IsIn(['remote-http', 'node-stdio', 'synapse-cloud-node'])
+  kind: string;
+
+  @IsString()
+  @IsIn(['provider-remote', 'desktop-node', 'synapse-cloud-node'])
+  runtimeTarget: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  platforms: string[];
+
+  @IsOptional()
+  @IsInt()
+  priority?: number;
+
+  @IsOptional()
+  @IsString()
+  authProfileId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['streamable-http', 'sse'])
+  transport?: string;
+
+  @IsOptional()
+  @IsUrl({ require_protocol: true, protocols: ['https'] })
+  url?: string;
+
+  @IsOptional()
+  @IsObject()
+  headers?: Record<string, string>;
+
+  @IsOptional()
+  @IsString()
+  artifactId?: string;
+
+  @IsOptional()
+  @IsObject()
+  install?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  entrypoint?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  args?: string[];
+
+  @IsOptional()
+  @IsObject()
+  env?: Record<string, string>;
+
+  @IsOptional()
+  @IsUrl({ require_protocol: true, protocols: ['https'] })
+  gatewayUrl?: string;
+}
 
 export class SubmitMcpRegistryServerRequestDto {
   @ApiPropertyOptional({
@@ -167,8 +287,9 @@ export class SubmitMcpRegistryServerRequestDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
-  @IsObject({ each: true })
-  authProfiles?: Record<string, unknown>[];
+  @ValidateNested({ each: true })
+  @Type(() => McpAuthProfileRequestDto)
+  authProfiles?: McpAuthProfileRequestDto[];
 
   @ApiPropertyOptional({
     description: 'Immutable reviewed artifacts built from npm, GitHub, OCI, or Synapse sources.',
@@ -177,8 +298,9 @@ export class SubmitMcpRegistryServerRequestDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
-  @IsObject({ each: true })
-  artifacts?: Record<string, unknown>[];
+  @ValidateNested({ each: true })
+  @Type(() => McpArtifactRequestDto)
+  artifacts?: McpArtifactRequestDto[];
 
   @ApiPropertyOptional({
     description: 'Platform-specific execution variants for this logical MCP server.',
@@ -187,8 +309,9 @@ export class SubmitMcpRegistryServerRequestDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
-  @IsObject({ each: true })
-  deployments?: Record<string, unknown>[];
+  @ValidateNested({ each: true })
+  @Type(() => McpDeploymentRequestDto)
+  deployments?: McpDeploymentRequestDto[];
 
   @ApiPropertyOptional({
     description: 'Approved tools and future MCP resources, prompts, tasks, and app capabilities.',
