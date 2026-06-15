@@ -29,7 +29,7 @@ describe('McpRegistryService', () => {
     documentationUrl: 'https://developers.notion.com/docs/get-started-with-mcp',
     source: { type: 'remote-http', url: 'https://mcp.notion.com/mcp' },
     auth: { type: 'oauth2-user', provider: 'notion' },
-    tools: ['notion-get-self'],
+    tools: ['notion-create-pages'],
     runtimeTargets: ['desktop-node', 'cloud-worker'],
     platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
     desktop: { transport: 'http' },
@@ -39,7 +39,7 @@ describe('McpRegistryService', () => {
     authProfiles: [],
     artifacts: [],
     deployments: [],
-    capabilityCatalog: { tools: ['notion-get-self'] },
+    capabilityCatalog: { tools: ['notion-create-pages'] },
     createdBy: 'seed@synapse.dev',
     createdAt: new Date('2026-06-01T00:00:00.000Z'),
     updatedAt: new Date('2026-06-01T00:00:00.000Z'),
@@ -60,7 +60,7 @@ describe('McpRegistryService', () => {
     documentationUrl: 'https://developers.notion.com/docs/get-started-with-mcp',
     source: { type: 'remote-http', url: 'https://mcp.notion.com/mcp' },
     auth: { type: 'oauth2-user', provider: 'notion' },
-    tools: ['notion-get-self', 'notion-create-pages'],
+    tools: ['notion-create-pages'],
     runtimeTargets: ['desktop-node', 'cloud-worker'],
     platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
     desktop: { transport: 'http' },
@@ -71,7 +71,7 @@ describe('McpRegistryService', () => {
     artifacts: [],
     deployments: [],
     capabilityCatalog: {
-      tools: ['notion-get-self', 'notion-create-pages'],
+      tools: ['notion-create-pages'],
     },
     submissionNotes: 'Add page creation support',
     createdBy: 'developer@example.com',
@@ -153,7 +153,7 @@ describe('McpRegistryService', () => {
         url: 'https://mcp.notion.com/mcp',
       },
       auth: { type: 'mcp-oauth', provider: 'notion' },
-      tools: ['notion-get-self', 'notion-create-pages'],
+      tools: ['notion-create-pages'],
       runtimeTargets: ['provider-remote'],
       platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
       deployments: [
@@ -167,7 +167,7 @@ describe('McpRegistryService', () => {
         },
       ],
       capabilityCatalog: {
-        tools: ['notion-get-self', 'notion-create-pages'],
+        tools: ['notion-create-pages'],
       },
       createdBy: 'pratap',
     });
@@ -239,7 +239,7 @@ describe('McpRegistryService', () => {
       documentationUrl: 'https://developers.notion.com/docs/get-started-with-mcp',
       source: { type: 'remote-http', url: 'https://mcp.notion.com/mcp' },
       auth: { type: 'oauth2-user', provider: 'notion' },
-      tools: ['notion-get-self', 'notion-create-pages'],
+      tools: ['notion-create-pages'],
       runtimeTargets: ['desktop-node', 'cloud-worker'],
       platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
       desktop: { transport: 'http' },
@@ -264,7 +264,7 @@ describe('McpRegistryService', () => {
     entriesRepository.update.mockResolvedValue({
       ...publishedEntry,
       currentVersion: '1.1.0',
-      tools: ['notion-get-self', 'notion-create-pages'],
+      tools: ['notion-create-pages'],
     });
     submissionsRepository.update.mockResolvedValue({
       ...submission,

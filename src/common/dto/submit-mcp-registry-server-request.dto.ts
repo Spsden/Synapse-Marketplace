@@ -216,7 +216,7 @@ export class SubmitMcpRegistryServerRequestDto {
 
   @ApiProperty({
     type: [String],
-    example: ['notion-get-self', 'notion-create-pages'],
+    example: ['notion-create-pages'],
   })
   @IsArray()
   @ArrayMinSize(1)

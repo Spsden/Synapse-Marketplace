@@ -31,7 +31,7 @@ describe('DeveloperService', () => {
       manifest: {
         id: 'com.synapse.notion',
         name: 'Notion',
-        version: '1.0.2',
+        version: '1.0.3',
       },
       jsCode: 'synapse.register("add_to_notion", async () => {});',
       iconData: null,

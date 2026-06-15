@@ -21,7 +21,7 @@ describe('importOfficialMcpServer', () => {
       },
       {
         serverId: 'notion',
-        tools: ['notion-get-self', 'notion-create-pages'],
+        tools: ['notion-create-pages'],
         createdBy: 'synapse-system',
         maintainerName: 'Notion',
         maintainerKind: 'official',
@@ -46,7 +46,7 @@ describe('importOfficialMcpServer', () => {
     ]);
     expect(imported.upstreamHash).toMatch(/^sha256-[a-f0-9]{64}$/);
     expect(imported.capabilityCatalog).toEqual({
-      tools: ['notion-get-self', 'notion-create-pages'],
+      tools: ['notion-create-pages'],
     });
   });
 
