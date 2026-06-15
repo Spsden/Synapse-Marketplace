@@ -1,19 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import AdmZip from 'adm-zip';
-import { validate } from 'class-validator';
-import { plainToInstance } from 'class-transformer';
 import { readFileSync } from 'fs';
 
-/**
- * Manifest validation DTO.
- */
-class ManifestDto {
-  name!: string;
-  version!: string;
-  description?: string;
-  author?: string;
-  minAppVersion?: string;
-}
+const LEGACY_MANIFEST_FIELDS = ['triggers', 'inputSchema', 'auth', 'mcpServers'];
 
 /**
  * Result of extracting a .synx package.
@@ -133,11 +122,31 @@ export class SynxPackageService {
       const manifest = JSON.parse(manifestJson);
 
       // Basic validation - check required fields exist
+      if (!manifest.id) {
+        throw new Error("manifest.json missing required field: 'id'");
+      }
       if (!manifest.name) {
         throw new Error("manifest.json missing required field: 'name'");
       }
       if (!manifest.version) {
         throw new Error("manifest.json missing required field: 'version'");
+      }
+      if (manifest.manifestVersion !== 2) {
+        throw new Error("manifest.json field 'manifestVersion' must be 2");
+      }
+      if (!Array.isArray(manifest.actions) || manifest.actions.length === 0) {
+        throw new Error(
+          "manifest.json field 'actions' must contain at least one action",
+        );
+      }
+
+      const legacyFields = LEGACY_MANIFEST_FIELDS.filter((field) =>
+        Object.prototype.hasOwnProperty.call(manifest, field),
+      );
+      if (legacyFields.length > 0) {
+        throw new Error(
+          `manifest.json contains unsupported manifest v1 fields: ${legacyFields.join(', ')}`,
+        );
       }
 
       return manifest;

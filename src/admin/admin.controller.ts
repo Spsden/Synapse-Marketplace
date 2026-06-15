@@ -1,9 +1,10 @@
-import { Controller, Get, Patch, Post, Delete, Param, Query, Body, UsePipes, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Param, Query, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { PluginReviewService } from '../plugins/plugin-review.service';
 import { PluginsService } from '../plugins/plugins.service';
 import { PluginReviewItem } from '../common/dto/plugin-review-item.dto';
 import { ReviewDecisionRequestDto } from '../common/dto/review-decision-request.dto';
+import { MarketplaceAdminGuard } from '../common/guards/marketplace-api-token.guard';
 
 /**
  * Admin API controller for plugin review and management.
@@ -16,7 +17,7 @@ import { ReviewDecisionRequestDto } from '../common/dto/review-decision-request.
  */
 @ApiTags('Admin')
 @Controller('admin')
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+@UseGuards(MarketplaceAdminGuard)
 export class AdminController {
   constructor(
     private readonly reviewService: PluginReviewService,

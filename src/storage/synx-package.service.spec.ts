@@ -1,9 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SynxPackageService, SynxPackage } from './synx-package.service';
+import { SynxPackageService } from './synx-package.service';
 import AdmZip from 'adm-zip';
 
 // Mock AdmZip module
 jest.mock('adm-zip');
+
+const validManifest = (overrides: Record<string, unknown> = {}) => ({
+  manifestVersion: 2,
+  id: 'com.synapse.test',
+  name: 'Test Plugin',
+  version: '1.0.0',
+  actions: [
+    {
+      id: 'run',
+      triggers: ['run'],
+    },
+  ],
+  ...overrides,
+});
 
 describe('SynxPackageService', () => {
   let service: SynxPackageService;
@@ -34,11 +48,9 @@ describe('SynxPackageService', () => {
           isDirectory: false,
           getData: jest.fn().mockReturnValue(
             Buffer.from(
-              JSON.stringify({
-                name: 'Test Plugin',
-                version: '1.0.0',
+              JSON.stringify(validManifest({
                 description: 'Test description',
-              }),
+              })),
             ),
           ),
         },
@@ -59,9 +71,17 @@ describe('SynxPackageService', () => {
       const result = await service.extractPackage(buffer);
 
       expect(result.manifest).toEqual({
+        manifestVersion: 2,
+        id: 'com.synapse.test',
         name: 'Test Plugin',
         version: '1.0.0',
         description: 'Test description',
+        actions: [
+          {
+            id: 'run',
+            triggers: ['run'],
+          },
+        ],
       });
       expect(result.jsCode).toBe('console.log("hello");');
       expect(result.iconData).toBeUndefined();
@@ -77,10 +97,7 @@ describe('SynxPackageService', () => {
           isDirectory: false,
           getData: jest.fn().mockReturnValue(
             Buffer.from(
-              JSON.stringify({
-                name: 'Test Plugin',
-                version: '1.0.0',
-              }),
+              JSON.stringify(validManifest()),
             ),
           ),
         },
@@ -144,10 +161,7 @@ describe('SynxPackageService', () => {
           isDirectory: false,
           getData: jest.fn().mockReturnValue(
             Buffer.from(
-              JSON.stringify({
-                name: 'Test Plugin',
-                version: '1.0.0',
-              }),
+              JSON.stringify(validManifest()),
             ),
           ),
         },
@@ -208,9 +222,7 @@ describe('SynxPackageService', () => {
           isDirectory: false,
           getData: jest.fn().mockReturnValue(
             Buffer.from(
-              JSON.stringify({
-                version: '1.0.0',
-              }),
+              JSON.stringify(validManifest({ name: undefined })),
             ),
           ),
         },
@@ -241,9 +253,7 @@ describe('SynxPackageService', () => {
           isDirectory: false,
           getData: jest.fn().mockReturnValue(
             Buffer.from(
-              JSON.stringify({
-                name: 'Test Plugin',
-              }),
+              JSON.stringify(validManifest({ version: undefined })),
             ),
           ),
         },
@@ -264,6 +274,66 @@ describe('SynxPackageService', () => {
 
       await expect(service.extractPackage(buffer)).rejects.toThrow(
         "manifest.json missing required field: 'version'",
+      );
+    });
+
+    it('should reject a manifest without manifestVersion 2', async () => {
+      const mockEntries = [
+        {
+          entryName: 'manifest.json',
+          isDirectory: false,
+          getData: jest.fn().mockReturnValue(
+            Buffer.from(
+              JSON.stringify(validManifest({ manifestVersion: undefined })),
+            ),
+          ),
+        },
+        {
+          entryName: 'plugin.js',
+          isDirectory: false,
+          getData: jest.fn().mockReturnValue(Buffer.from('code')),
+        },
+      ];
+
+      const mockZipInstance = {
+        getEntries: jest.fn().mockReturnValue(mockEntries),
+      };
+
+      (AdmZip as jest.MockedClass<typeof AdmZip>).mockImplementation(
+        () => mockZipInstance as any,
+      );
+
+      await expect(service.extractPackage(Buffer.from('zip-data'))).rejects.toThrow(
+        "manifest.json field 'manifestVersion' must be 2",
+      );
+    });
+
+    it('should reject manifest v1 top-level fields', async () => {
+      const mockEntries = [
+        {
+          entryName: 'manifest.json',
+          isDirectory: false,
+          getData: jest.fn().mockReturnValue(
+            Buffer.from(JSON.stringify(validManifest({ auth: { provider: 'notion' } }))),
+          ),
+        },
+        {
+          entryName: 'plugin.js',
+          isDirectory: false,
+          getData: jest.fn().mockReturnValue(Buffer.from('code')),
+        },
+      ];
+
+      const mockZipInstance = {
+        getEntries: jest.fn().mockReturnValue(mockEntries),
+      };
+
+      (AdmZip as jest.MockedClass<typeof AdmZip>).mockImplementation(
+        () => mockZipInstance as any,
+      );
+
+      await expect(service.extractPackage(Buffer.from('zip-data'))).rejects.toThrow(
+        'manifest.json contains unsupported manifest v1 fields: auth',
       );
     });
 

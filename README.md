@@ -2,11 +2,17 @@
 
 A production-ready, enterprise-grade plugin marketplace API for the Synapse Second Mind application. Built with NestJS and TypeScript, using Supabase for database and storage.
 
+## Additional Docs
+
+- [Desktop MCP end-to-end runbook](./docs/DESKTOP_MCP_E2E.md)
+
 ## Features
 
 - **Plugin Marketplace**: Browse, search, and discover published plugins
+- **MCP Registry Control Plane**: Review and publish trusted MCP server definitions
 - **Version Management**: Semantic versioning with compatibility checking
 - **Developer Submission**: Upload .synx packages via multipart form upload
+- **MCP Registry v2**: Reviewed remote, desktop Node, and certified cloud Node deployments
 - **Admin Review Workflow**: Approve/reject plugins with automated safety checks
 - **Supabase Integration**: PostgreSQL database + CDN-backed storage
 - **Signed URLs**: Secure, time-limited download URLs
@@ -139,6 +145,11 @@ http://localhost:3000/api-docs
 
 ## API Endpoints
 
+Architecture and operations:
+
+- [`docs/PLUGIN_MCP_ARCHITECTURE_V2.md`](docs/PLUGIN_MCP_ARCHITECTURE_V2.md)
+- [`docs/NOTION_RESET_RUNBOOK.md`](docs/NOTION_RESET_RUNBOOK.md)
+
 ### Public Store APIs (`/api/v1/store`)
 - `GET /store/plugins` - List published plugins (with pagination, search, filters)
 - `GET /store/plugins/:packageId` - Get plugin by package ID
@@ -146,14 +157,22 @@ http://localhost:3000/api-docs
 - `GET /store/versions/:versionId` - Get version details
 - `GET /store/plugins/:packageId/statistics` - Get plugin statistics
 
+### Public MCP Registry APIs (`/api/v1/mcp`)
+- `GET /mcp/registry` - Get published MCP runtime registry snapshot
+- `GET /mcp/servers` - List published MCP server definitions
+- `GET /mcp/servers/:serverId` - Get one published MCP server definition
+
 ### Developer APIs (`/api/v1/dev`)
 - `POST /dev/plugins/submit` - Submit a .synx plugin package
+- `POST /dev/mcp/servers/submit` - Submit an MCP server definition for review
 
 ### Admin APIs (`/api/v1/admin`)
 - `GET /admin/review-queue` - Get pending review items
 - `PATCH /admin/plugins/:versionId/verify` - Approve/reject a version
 - `POST /admin/plugins/:versionId/flag` - Flag a plugin for security
 - `DELETE /admin/plugins/:versionId/flag` - Unflag a plugin
+- `GET /admin/mcp/review-queue` - Get pending MCP registry submissions
+- `PATCH /admin/mcp/submissions/:submissionId/review` - Approve/reject an MCP registry submission
 
 ## .synx Package Format
 
@@ -171,28 +190,37 @@ plugin.synx
 ### manifest.json Schema
 ```json
 {
+  "$schema": "https://synapse.dev/schemas/manifest.schema.json",
+  "manifestVersion": 2,
+  "id": "com.synapse.task-manager",
   "name": "Task Manager",
   "description": "Manage your tasks with AI",
   "version": "1.0.0",
-  "minAppVersion": "1.0.0",
-  "author": {
-    "name": "Synapse Team",
-    "email": "dev@synapse.com"
+  "author": "Synapse Team",
+  "security": {
+    "allowedDomains": ["api.example.com"],
+    "permissions": ["network"]
   },
-  "entryPoint": "plugin.js",
-  "icon": "icon.png",
-  "permissions": [
-    "storage:read",
-    "network:https://api.example.com"
-  ],
-  "capabilities": {
-    "transientStorage": true,
-    "persistentStorage": false
-  },
-  "triggers": {
-    "voiceIntents": ["create_task", "list_tasks"],
-    "screenshotIntents": ["analyze_screenshot"]
-  }
+  "connections": [],
+  "actions": [
+    {
+      "id": "create_task",
+      "triggers": ["create_task"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" }
+        },
+        "required": ["title"]
+      },
+      "requirements": [
+        {
+          "kind": "network",
+          "domains": ["api.example.com"]
+        }
+      ]
+    }
+  ]
 }
 ```
 
