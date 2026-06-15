@@ -102,6 +102,7 @@ export interface ReviewDecisionRequest {
 }
 
 export interface McpRegistryEntry {
+  schemaVersion: number;
   id: string;
   serverId: string;
   displayName: string;
@@ -119,6 +120,13 @@ export interface McpRegistryEntry {
   desktop?: Record<string, unknown> | null;
   cloud?: Record<string, unknown> | null;
   capabilities?: Record<string, unknown> | null;
+  upstream?: Record<string, unknown> | null;
+  upstreamHash?: string | null;
+  authProfiles: Record<string, unknown>[];
+  artifacts: Record<string, unknown>[];
+  deployments: Record<string, unknown>[];
+  capabilityCatalog: Record<string, unknown>;
+  cloudCertification?: Record<string, unknown> | null;
   publishedAt: string;
 }
 
@@ -162,6 +170,11 @@ export interface SubmitMcpServerRequest {
   createdBy: string;
 }
 
+export interface ImportOfficialMcpServerRequest {
+  server: Record<string, unknown>;
+  overlay: Record<string, unknown>;
+}
+
 export interface ReviewMcpSubmissionRequest {
   decision: "PUBLISH" | "REJECT";
   reviewedBy: string;
@@ -181,3 +194,56 @@ export type VersionStatus =
   | "PUBLISHED"
   | "REJECTED"
   | "FLAGGED";
+
+export type OAuthProvider =
+  | "notion"
+  | "google"
+  | "github"
+  | "slack"
+  | "microsoft"
+  | "discord"
+  | "linear"
+  | "figma"
+  | "salesforce"
+  | "dropbox"
+  | "stripe";
+
+export type ScopeMode = "required" | "optional" | "forbidden";
+
+export interface OAuthCredentialResponse {
+  id: string;
+  package_id: string;
+  provider: OAuthProvider;
+  client_id: string;
+  scopes: string[];
+  scope_mode?: ScopeMode;
+  metadata?: Record<string, unknown>;
+  extras?: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface OAuthCredentialsListResponse {
+  credentials: OAuthCredentialResponse[];
+}
+
+export interface SubmitOAuthCredentialRequest {
+  package_id: string;
+  provider: OAuthProvider;
+  client_id: string;
+  client_secret: string;
+  scopes?: string[];
+  scope_mode?: ScopeMode;
+  owner_developer_id: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface UpdateOAuthCredentialRequest {
+  client_id?: string;
+  client_secret?: string;
+  scopes?: string[];
+  scope_mode?: ScopeMode;
+  metadata?: Record<string, unknown>;
+  is_active?: boolean;
+}

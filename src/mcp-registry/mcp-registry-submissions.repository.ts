@@ -9,6 +9,11 @@ import {
 } from '../common/entities/mcp-registry.entity';
 import { McpRegistrySubmissionStatus } from '../common/enums/mcp-registry-submission-status.enum';
 
+/**
+ * Stores proposed MCP registry changes while they await admin review.
+ * Submissions do not affect the public runtime registry until approved and
+ * published through McpRegistryEntriesRepository.
+ */
 @Injectable()
 export class McpRegistrySubmissionsRepository {
   private readonly supabase: SupabaseClient;

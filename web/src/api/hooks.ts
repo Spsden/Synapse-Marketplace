@@ -51,7 +51,7 @@ export function useMcpRegistry() {
 export function useMcpServers() {
   return useQuery({
     queryKey: ["mcp-servers"],
-    queryFn: () => api.mcp.listServers,
+    queryFn: () => api.mcp.listServers(),
   });
 }
 
@@ -76,6 +76,14 @@ export function useSubmitMcpServer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: api.dev.submitMcpServer,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mcp-registry"] }),
+  });
+}
+
+export function useImportOfficialMcpServer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.dev.importOfficialMcpServer,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["mcp-registry"] }),
   });
 }
@@ -155,5 +163,62 @@ export function useReviewMcpSubmission() {
     }) => api.admin.reviewMcpSubmission(submissionId, body),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["admin-mcp-review-queue"] }),
+  });
+}
+
+export function useOAuthCredentials(developerId: string) {
+  return useQuery({
+    queryKey: ["oauth-credentials", developerId],
+    queryFn: () => api.oauth.listByDeveloper(developerId),
+    enabled: !!developerId,
+  });
+}
+
+export function useSubmitOAuthCredential() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      body,
+      developerId,
+    }: {
+      body: import("@/types").SubmitOAuthCredentialRequest;
+      developerId?: string;
+    }) => api.oauth.submitCredentials(body, developerId),
+    onSuccess: (_data, variables) =>
+      qc.invalidateQueries({
+        queryKey: ["oauth-credentials", variables.body.owner_developer_id],
+      }),
+  });
+}
+
+export function useUpdateOAuthCredential() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+      developerId,
+    }: {
+      id: string;
+      body: import("@/types").UpdateOAuthCredentialRequest;
+      developerId?: string;
+    }) => api.oauth.updateCredentials(id, body, developerId),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["oauth-credentials"] }),
+  });
+}
+
+export function useDisableOAuthCredential() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      developerId,
+    }: {
+      id: string;
+      developerId?: string;
+    }) => api.oauth.disableCredentials(id, developerId),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["oauth-credentials"] }),
   });
 }

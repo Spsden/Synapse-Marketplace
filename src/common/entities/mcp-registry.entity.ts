@@ -3,8 +3,9 @@ import {
   McpRegistrySubmissionStatus,
 } from '../enums/mcp-registry-submission-status.enum';
 
-export interface McpRegistryEntry {
-  id: string;
+type JsonObject = Record<string, unknown>;
+
+export interface McpRegistryDefinition {
   serverId: string;
   displayName: string;
   description?: string | null;
@@ -13,22 +14,39 @@ export interface McpRegistryEntry {
   maintainerKind: string;
   trustLevel: string;
   documentationUrl?: string | null;
-  source: Record<string, unknown>;
-  auth?: Record<string, unknown> | null;
+  source: JsonObject;
+  auth?: JsonObject | null;
   tools: string[];
   runtimeTargets: string[];
   platforms: string[];
-  desktop?: Record<string, unknown> | null;
-  cloud?: Record<string, unknown> | null;
-  capabilities?: Record<string, unknown> | null;
+  desktop?: JsonObject | null;
+  cloud?: JsonObject | null;
+  capabilities?: JsonObject | null;
   schemaVersion: number;
-  upstream?: Record<string, unknown> | null;
+  upstream?: JsonObject | null;
   upstreamHash?: string | null;
-  authProfiles: Record<string, unknown>[];
-  artifacts: Record<string, unknown>[];
-  deployments: Record<string, unknown>[];
-  capabilityCatalog: Record<string, unknown>;
-  cloudCertification?: Record<string, unknown> | null;
+  authProfiles: JsonObject[];
+  artifacts: JsonObject[];
+  deployments: JsonObject[];
+  capabilityCatalog: JsonObject;
+  cloudCertification?: JsonObject | null;
+}
+
+type DefaultedDefinitionFields =
+  | 'schemaVersion'
+  | 'authProfiles'
+  | 'artifacts'
+  | 'deployments'
+  | 'capabilityCatalog';
+
+export type CreateMcpRegistryDefinitionDto = Omit<
+  McpRegistryDefinition,
+  DefaultedDefinitionFields
+> &
+  Partial<Pick<McpRegistryDefinition, DefaultedDefinitionFields>>;
+
+export interface McpRegistryEntry extends McpRegistryDefinition {
+  id: string;
   createdBy?: string | null;
   updatedBy?: string | null;
   createdAt: Date;
@@ -36,67 +54,18 @@ export interface McpRegistryEntry {
   publishedAt: Date;
 }
 
-export interface CreateMcpRegistryEntryDto {
-  serverId: string;
-  displayName: string;
-  description?: string | null;
-  currentVersion: string;
-  maintainerName: string;
-  maintainerKind: string;
-  trustLevel: string;
-  documentationUrl?: string | null;
-  source: Record<string, unknown>;
-  auth?: Record<string, unknown> | null;
-  tools: string[];
-  runtimeTargets: string[];
-  platforms: string[];
-  desktop?: Record<string, unknown> | null;
-  cloud?: Record<string, unknown> | null;
-  capabilities?: Record<string, unknown> | null;
-  schemaVersion?: number;
-  upstream?: Record<string, unknown> | null;
-  upstreamHash?: string | null;
-  authProfiles?: Record<string, unknown>[];
-  artifacts?: Record<string, unknown>[];
-  deployments?: Record<string, unknown>[];
-  capabilityCatalog?: Record<string, unknown>;
-  cloudCertification?: Record<string, unknown> | null;
+export type CreateMcpRegistryEntryDto = CreateMcpRegistryDefinitionDto & {
   createdBy?: string | null;
   updatedBy?: string | null;
   publishedAt?: Date;
-}
+};
 
-export interface UpdateMcpRegistryEntryDto
-  extends Partial<CreateMcpRegistryEntryDto> {}
+export type UpdateMcpRegistryEntryDto = Partial<CreateMcpRegistryEntryDto>;
 
-export interface McpRegistrySubmission {
+export interface McpRegistrySubmission extends McpRegistryDefinition {
   id: string;
-  serverId: string;
   targetEntryId?: string | null;
   changeType: McpRegistryChangeType;
-  displayName: string;
-  description?: string | null;
-  currentVersion: string;
-  maintainerName: string;
-  maintainerKind: string;
-  trustLevel: string;
-  documentationUrl?: string | null;
-  source: Record<string, unknown>;
-  auth?: Record<string, unknown> | null;
-  tools: string[];
-  runtimeTargets: string[];
-  platforms: string[];
-  desktop?: Record<string, unknown> | null;
-  cloud?: Record<string, unknown> | null;
-  capabilities?: Record<string, unknown> | null;
-  schemaVersion: number;
-  upstream?: Record<string, unknown> | null;
-  upstreamHash?: string | null;
-  authProfiles: Record<string, unknown>[];
-  artifacts: Record<string, unknown>[];
-  deployments: Record<string, unknown>[];
-  capabilityCatalog: Record<string, unknown>;
-  cloudCertification?: Record<string, unknown> | null;
   submissionNotes?: string | null;
   createdBy: string;
   status: McpRegistrySubmissionStatus;
@@ -107,36 +76,12 @@ export interface McpRegistrySubmission {
   reviewedAt?: Date | null;
 }
 
-export interface CreateMcpRegistrySubmissionDto {
-  serverId: string;
+export type CreateMcpRegistrySubmissionDto = CreateMcpRegistryDefinitionDto & {
   targetEntryId?: string | null;
   changeType: McpRegistryChangeType;
-  displayName: string;
-  description?: string | null;
-  currentVersion: string;
-  maintainerName: string;
-  maintainerKind: string;
-  trustLevel: string;
-  documentationUrl?: string | null;
-  source: Record<string, unknown>;
-  auth?: Record<string, unknown> | null;
-  tools: string[];
-  runtimeTargets: string[];
-  platforms: string[];
-  desktop?: Record<string, unknown> | null;
-  cloud?: Record<string, unknown> | null;
-  capabilities?: Record<string, unknown> | null;
-  schemaVersion?: number;
-  upstream?: Record<string, unknown> | null;
-  upstreamHash?: string | null;
-  authProfiles?: Record<string, unknown>[];
-  artifacts?: Record<string, unknown>[];
-  deployments?: Record<string, unknown>[];
-  capabilityCatalog?: Record<string, unknown>;
-  cloudCertification?: Record<string, unknown> | null;
   submissionNotes?: string | null;
   createdBy: string;
-}
+};
 
 export interface UpdateMcpRegistrySubmissionDto {
   targetEntryId?: string | null;

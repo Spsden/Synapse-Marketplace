@@ -49,6 +49,17 @@ export default function McpServerDetailPage() {
           <Field label="Kind" value={server.maintainerKind} />
         </div>
 
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200">
+            Schema v{server.schemaVersion}
+          </span>
+          {server.upstreamHash && (
+            <span className="text-xs text-gray-400 font-mono">
+              upstream: {server.upstreamHash.slice(0, 12)}...
+            </span>
+          )}
+        </div>
+
         {server.documentationUrl && (
           <a
             href={server.documentationUrl}
@@ -117,6 +128,55 @@ export default function McpServerDetailPage() {
           <Section title="Capabilities">
             <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
               {JSON.stringify(server.capabilities, null, 2)}
+            </pre>
+          </Section>
+        )}
+
+        {server.authProfiles.length > 0 && (
+          <Section title={`Auth Profiles (${server.authProfiles.length})`}>
+            <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
+              {JSON.stringify(server.authProfiles, null, 2)}
+            </pre>
+          </Section>
+        )}
+
+        {server.artifacts.length > 0 && (
+          <Section title={`Artifacts (${server.artifacts.length})`}>
+            <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
+              {JSON.stringify(server.artifacts, null, 2)}
+            </pre>
+          </Section>
+        )}
+
+        {server.deployments.length > 0 && (
+          <Section title={`Deployments (${server.deployments.length})`}>
+            <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
+              {JSON.stringify(server.deployments, null, 2)}
+            </pre>
+          </Section>
+        )}
+
+        {server.capabilityCatalog &&
+          Object.keys(server.capabilityCatalog).length > 0 && (
+            <Section title="Capability Catalog">
+              <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
+                {JSON.stringify(server.capabilityCatalog, null, 2)}
+              </pre>
+            </Section>
+          )}
+
+        {server.cloudCertification && (
+          <Section title="Cloud Certification">
+            <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
+              {JSON.stringify(server.cloudCertification, null, 2)}
+            </pre>
+          </Section>
+        )}
+
+        {server.upstream && (
+          <Section title="Upstream">
+            <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
+              {JSON.stringify(server.upstream, null, 2)}
             </pre>
           </Section>
         )}

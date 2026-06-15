@@ -8,6 +8,10 @@ import {
   UpdateMcpRegistryEntryDto,
 } from '../common/entities/mcp-registry.entity';
 
+/**
+ * Stores approved MCP server definitions that make up the public runtime
+ * registry. Entries are created or updated only after a submission is approved.
+ */
 @Injectable()
 export class McpRegistryEntriesRepository {
   private readonly logger = new Logger(McpRegistryEntriesRepository.name);

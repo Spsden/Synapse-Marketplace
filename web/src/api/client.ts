@@ -1,15 +1,21 @@
-const API_BASE = "/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
+
+const MARKETPLACE_TOKEN = import.meta.env.VITE_MARKETPLACE_TOKEN ?? "";
 
 async function request<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
+  const isFormData = options?.body instanceof FormData;
   const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...(MARKETPLACE_TOKEN
+        ? { Authorization: `Bearer ${MARKETPLACE_TOKEN}` }
+        : {}),
       ...options?.headers,
     },
-    ...options,
   });
 
   if (!res.ok) {
@@ -98,6 +104,14 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+
+    importOfficialMcpServer: (
+      body: import("@/types").ImportOfficialMcpServerRequest,
+    ) =>
+      request<import("@/types").McpRegistryReviewItem>(
+        "/dev/mcp/servers/import-official",
+        { method: "POST", body: JSON.stringify(body) },
+      ),
   },
 
   admin: {
@@ -143,5 +157,51 @@ export const api = {
         `/admin/mcp/submissions/${submissionId}/review`,
         { method: "PATCH", body: JSON.stringify(body) },
       ),
+  },
+
+  oauth: {
+    submitCredentials: (
+      body: import("@/types").SubmitOAuthCredentialRequest,
+      developerId?: string,
+    ) =>
+      request<import("@/types").OAuthCredentialResponse>(
+        "/oauth/credentials",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+          headers: developerId
+            ? { "x-developer-id": developerId }
+            : {},
+        },
+      ),
+
+    listByDeveloper: (developerId: string) =>
+      request<import("@/types").OAuthCredentialsListResponse>(
+        `/oauth/credentials/developer/${developerId}`,
+      ),
+
+    updateCredentials: (
+      id: string,
+      body: import("@/types").UpdateOAuthCredentialRequest,
+      developerId?: string,
+    ) =>
+      request<import("@/types").OAuthCredentialResponse>(
+        `/oauth/credentials/${id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(body),
+          headers: developerId
+            ? { "x-developer-id": developerId }
+            : {},
+        },
+      ),
+
+    disableCredentials: (id: string, developerId?: string) =>
+      request<void>(`/oauth/credentials/${id}`, {
+        method: "DELETE",
+        headers: developerId
+          ? { "x-developer-id": developerId }
+          : {},
+      }),
   },
 };
