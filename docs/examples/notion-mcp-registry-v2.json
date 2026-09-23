@@ -17,7 +17,7 @@
     "type": "mcp-oauth",
     "provider": "notion"
   },
-  "tools": ["notion-get-self", "notion-create-pages"],
+  "tools": ["notion-create-pages"],
   "runtimeTargets": ["provider-remote"],
   "platforms": ["macos", "windows", "linux", "ios", "android"],
   "authProfiles": [
@@ -41,7 +41,7 @@
     }
   ],
   "capabilityCatalog": {
-    "tools": ["notion-get-self", "notion-create-pages"]
+    "tools": ["notion-create-pages"]
   },
   "submissionNotes": "Official hosted server is authoritative. The legacy local Notion server is not a production deployment.",
   "createdBy": "synapse-system"

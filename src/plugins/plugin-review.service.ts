@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PluginsRepository } from './plugins.repository';
 import { PluginVersionsRepository } from './plugin-versions.repository';
 import { StorageService } from '../storage/storage.service';
@@ -17,12 +18,19 @@ import { PluginVersion } from '../common/entities/plugin-version.entity';
 @Injectable()
 export class PluginReviewService {
   private readonly logger = new Logger(PluginReviewService.name);
+  private readonly pluginsBucket: string;
+  private readonly tempUploadsBucket: string;
 
   constructor(
     private readonly pluginsRepository: PluginsRepository,
     private readonly versionsRepository: PluginVersionsRepository,
     private readonly storageService: StorageService,
-  ) {}
+    configService: ConfigService,
+  ) {
+    const supabaseConfig = configService.get('supabase');
+    this.pluginsBucket = supabaseConfig.pluginsBucket;
+    this.tempUploadsBucket = supabaseConfig.tempUploadsBucket;
+  }
 
   /**
    * Retrieves all plugin versions currently in the review queue.
@@ -129,15 +137,20 @@ export class PluginReviewService {
   }
 
   /**
-   * Unflags a previously flagged version.
+   * Unflags a previously flagged version and returns it to the review queue.
    */
   async unflagVersion(versionId: string): Promise<void> {
     this.logger.log(`Unflagging version ${versionId}`);
 
     const version = await this.getVersionForReview(versionId);
+
     await this.versionsRepository.update(versionId, {
       isFlagged: false,
       flagReason: null,
+      // A flagged version is not reviewable, so unflagging must also reopen it.
+      ...(version.status === VersionStatus.FLAGGED
+        ? { status: VersionStatus.PENDING_REVIEW }
+        : {}),
     });
   }
 
@@ -210,7 +223,7 @@ export class PluginReviewService {
 
         await this.versionsRepository.update(version.id, {
           storagePath: moveResult.storagePath,
-          storageBucket: 'plugins', // Will be set from config in production
+          storageBucket: this.pluginsBucket,
           tempStoragePath: null,
         });
 
@@ -249,7 +262,7 @@ export class PluginReviewService {
     // Delete artifact from temp storage
     if (version.tempStoragePath) {
       try {
-        await this.storageService.deleteArtifact(version.tempStoragePath, 'temp_uploads');
+        await this.storageService.deleteArtifact(version.tempStoragePath, this.tempUploadsBucket);
         this.logger.log(`Deleted rejected artifact from temp storage: ${version.tempStoragePath}`);
       } catch (error) {
         this.logger.error(`Failed to delete temp artifact for version ${version.id}: ${error.message}`);

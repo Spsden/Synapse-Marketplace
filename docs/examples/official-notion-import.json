@@ -15,7 +15,7 @@
   },
   "overlay": {
     "serverId": "notion",
-    "tools": ["notion-get-self", "notion-create-pages"],
+    "tools": ["notion-create-pages"],
     "createdBy": "synapse-system",
     "maintainerName": "Notion",
     "maintainerKind": "official",

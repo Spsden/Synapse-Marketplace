@@ -8,8 +8,12 @@ import {
   PaginatedResponse,
 } from '../common/dto';
 import { Plugin, CreatePluginDto } from '../common/entities/plugin.entity';
-import { PluginVersion } from '../common/entities/plugin-version.entity';
+import {
+  PluginVersion,
+  PluginVersionSource,
+} from '../common/entities/plugin-version.entity';
 import { PluginStatus } from '../common/enums/plugin-status.enum';
+import { VersionStatus } from '../common/enums/version-status.enum';
 import { PluginsRepository } from './plugins.repository';
 import { PluginVersionsRepository } from './plugin-versions.repository';
 import { StorageService } from '../storage/storage.service';
@@ -19,23 +23,31 @@ import {
   VersionConflictException,
 } from '../common/exceptions';
 
-// Extend Express namespace for Multer types
-declare global {
-  namespace Express {
-    interface Multer {
-      File: {
-        fieldname: string;
-        originalname: string;
-        encoding: string;
-        mimetype: string;
-        size: number;
-        buffer: Buffer;
-        destination?: string;
-        filename?: string;
-        path?: string;
-      };
-    }
-  }
+/**
+ * Input for submitting a plugin version.
+ *
+ * Metadata fields populate the parent plugin record on first submission;
+ * version fields always apply to the version being created.
+ */
+export interface SubmitPluginInput {
+  packageId: string;
+  name: string;
+  author: string;
+  version: string;
+  manifest: Record<string, any>;
+  minAppVersion: string;
+  description?: string;
+  iconKey?: string;
+  category?: string;
+  tags?: string;
+  sourceUrl?: string;
+  releaseNotes?: string;
+  storagePath?: string;
+  storageBucket?: string;
+  tempStoragePath?: string;
+  fileSizeBytes?: number;
+  checksumSha256?: string;
+  source?: PluginVersionSource;
 }
 
 /**
@@ -153,26 +165,33 @@ export class PluginsService {
 
   /**
    * Submits a new plugin or a new version of an existing plugin.
+   *
+   * The version starts in SUBMITTED and is only visible in the store once an
+   * admin publishes it. Provenance is optional and recorded when the artifact
+   * was built from a pinned source revision.
    */
-  async submitPlugin(
-    packageId: string,
-    name: string,
-    description: string,
-    author: string,
-    iconKey: string | undefined,
-    category: string | undefined,
-    tags: string | undefined,
-    sourceUrl: string | undefined,
-    version: string,
-    manifest: Record<string, any>,
-    minAppVersion: string,
-    releaseNotes: string | undefined,
-    storagePath: string | undefined,
-    storageBucket: string | undefined,
-    tempStoragePath: string | undefined,
-    fileSizeBytes: number | undefined,
-    checksumSha256: string | undefined,
-  ): Promise<PluginDetailResponse> {
+  async submitPlugin(input: SubmitPluginInput): Promise<PluginDetailResponse> {
+    const {
+      packageId,
+      version,
+      manifest,
+      minAppVersion,
+      name,
+      description,
+      author,
+      iconKey,
+      category,
+      tags,
+      sourceUrl,
+      releaseNotes,
+      storagePath,
+      storageBucket,
+      tempStoragePath,
+      fileSizeBytes,
+      checksumSha256,
+      source,
+    } = input;
+
     this.logger.log(`Submitting plugin ${packageId} version ${version}`);
 
     let plugin = await this.pluginsRepository.findByPackageId(packageId);
@@ -215,6 +234,7 @@ export class PluginsService {
       tempStoragePath,
       fileSizeBytes,
       checksumSha256,
+      source,
     });
 
     // Update plugin status to PENDING_REVIEW if it was SUBMITTED
@@ -230,65 +250,20 @@ export class PluginsService {
   }
 
   /**
-   * Submits a plugin with storage upload.
+   * Finds an existing version of a plugin, or null when the plugin or version
+   * is unknown. Used by ingest to enforce version immutability.
    */
-  // async submitPluginWithStorage(
-  //   file: Express.Multer.File,
-  //   packageId: string,
-  //   manifest: Record<string, any>,
-  //   jsCode: string,
-  //   name: string,
-  //   description: string,
-  //   author: string,
-  //   minAppVersion: string,
-  // ): Promise<PluginDetailResponse> {
-  //   this.logger.log(`Submitting plugin ${packageId} with storage upload`);
+  async findExistingVersion(
+    packageId: string,
+    version: string,
+  ): Promise<PluginVersion | null> {
+    const plugin = await this.pluginsRepository.findByPackageId(packageId);
+    if (!plugin) {
+      return null;
+    }
 
-  //   const version = manifest.version || '1.0.0';
-
-  //   // Check for duplicates before any storage operations
-  //   const plugin = await this.pluginsRepository.findByPackageId(packageId);
-  //   if (plugin) {
-  //     const existing = await this.versionsRepository.findByPluginIdAndVersion(
-  //       plugin.id,
-  //       version,
-  //     );
-  //     if (existing) {
-  //       this.logger.warn(`Version ${version} already exists for plugin ${packageId}`);
-  //       throw new VersionConflictException(packageId, version);
-  //     }
-  //   }
-
-  //   // Upload artifact to storage
-  //   const uploadResult = await this.storageService.uploadArtifact(
-  //     file.buffer,
-  //     file.mimetype,
-  //     packageId,
-  //     version,
-  //   );
-  //   this.logger.log(`Uploaded artifact to TEMP storage: ${uploadResult.tempPath}`);
-
-  //   // Create database records
-  //   return await this.submitPlugin(
-  //     packageId,
-  //     name,
-  //     description,
-  //     author,
-  //     undefined, // iconKey - will be set separately if needed
-  //     undefined, // category
-  //     undefined, // tags
-  //     undefined, // sourceUrl
-  //     version,
-  //     manifest,
-  //     minAppVersion,
-  //     undefined, // releaseNotes
-  //     uploadResult.storagePath,
-  //     uploadResult.bucket,
-  //     uploadResult.tempPath,
-  //     uploadResult.fileSizeBytes,
-  //     uploadResult.checksumSha256,
-  //   );
-  // }
+    return this.versionsRepository.findByPluginIdAndVersion(plugin.id, version);
+  }
 
   /**
    * Retrieves all versions of a plugin.
@@ -409,7 +384,7 @@ export class PluginsService {
 
     const publishedVersions = await this.versionsRepository.countByPluginIdAndStatus(
       plugin.id,
-      'PUBLISHED' as any,
+      VersionStatus.PUBLISHED,
     );
 
     return new PluginStatisticsResponse(
@@ -452,12 +427,11 @@ export class PluginsService {
     let downloadUrl: string | null = null;
     let expiresAt: number | null = null;
 
-   
-
+    // Unpublished versions live in the temp bucket until an admin publishes them.
     let storagePath = version.storagePath;
     let storageBucket = version.storageBucket;
 
-     if(version.status === PluginStatus.SUBMITTED.toString()) {
+    if (version.status === VersionStatus.SUBMITTED) {
       storagePath = version.tempStoragePath;
     }
 

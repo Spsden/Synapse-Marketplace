@@ -22,7 +22,7 @@ describe('SubmitMcpRegistryServerRequestDto', () => {
           type: 'remote-http',
           url: 'https://mcp.notion.com/mcp',
         },
-        tools: ['notion-get-self', 'notion-create-pages'],
+        tools: ['notion-create-pages'],
         runtimeTargets: ['provider-remote'],
         platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
         authProfiles: [

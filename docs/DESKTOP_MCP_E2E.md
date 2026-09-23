@@ -46,7 +46,7 @@ Build the package with:
 ```bash
 cd /Users/pratap/code/Synapse-SDK
 node cli/dist/index.js package plugins/notion \
-  --output /private/tmp/com.synapse.notion-1.0.2.synx
+  --output /private/tmp/com.synapse.notion-1.0.3.synx
 ```
 
 ## Optional Synapse desktop env overrides
@@ -188,7 +188,7 @@ Use your desktop target if it is not macOS.
 
 Install:
 
-`/private/tmp/com.synapse.notion-1.0.2.synx`
+`/private/tmp/com.synapse.notion-1.0.3.synx`
 
 ### 6.4 Authenticate Notion
 

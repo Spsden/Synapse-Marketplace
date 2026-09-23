@@ -1,3 +1,25 @@
+import type {
+  ImportOfficialMcpServerRequest,
+  IngestPluginsRequest,
+  IngestReport,
+  McpRegistryEntry,
+  McpRegistryReviewItem,
+  McpRegistrySnapshot,
+  OAuthCredentialResponse,
+  OAuthCredentialsListResponse,
+  PaginatedResponse,
+  PluginDetailResponse,
+  PluginResponse,
+  PluginReviewItem,
+  PluginStatisticsResponse,
+  PluginVersionResponse,
+  ReviewDecisionRequest,
+  ReviewMcpSubmissionRequest,
+  SubmitMcpServerRequest,
+  SubmitOAuthCredentialRequest,
+  UpdateOAuthCredentialRequest,
+} from "@/types";
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
 const MARKETPLACE_TOKEN = import.meta.env.VITE_MARKETPLACE_TOKEN ?? "";
@@ -6,11 +28,10 @@ async function request<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
-  const isFormData = options?.body instanceof FormData;
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
-      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      "Content-Type": "application/json",
       ...(MARKETPLACE_TOKEN
         ? { Authorization: `Bearer ${MARKETPLACE_TOKEN}` }
         : {}),
@@ -43,86 +64,57 @@ export const api = {
       if (params?.pageSize !== undefined)
         sp.set("pageSize", String(params.pageSize));
       const qs = sp.toString();
-      return request<{
-        data: import("@/types").PluginResponse[];
-        total: number;
-        page: number;
-        pageSize: number;
-        totalPages: number;
-      }>(`/store/plugins${qs ? `?${qs}` : ""}`);
+      return request<PaginatedResponse<PluginResponse>>(
+        `/store/plugins${qs ? `?${qs}` : ""}`,
+      );
     },
 
     getPlugin: (packageId: string, appVersion?: string) => {
       const qs = appVersion ? `?appVersion=${appVersion}` : "";
-      return request<import("@/types").PluginDetailResponse>(
+      return request<PluginDetailResponse>(
         `/store/plugins/${packageId}${qs}`,
       );
     },
 
     getPluginVersions: (packageId: string) =>
-      request<import("@/types").PluginVersionResponse[]>(
+      request<PluginVersionResponse[]>(
         `/store/plugins/${packageId}/versions`,
       ),
 
-    getVersion: (versionId: string) =>
-      request<import("@/types").PluginVersionResponse>(
-        `/store/versions/${versionId}`,
-      ),
-
     getStatistics: (packageId: string) =>
-      request<import("@/types").PluginStatisticsResponse>(
+      request<PluginStatisticsResponse>(
         `/store/plugins/${packageId}/statistics`,
       ),
   },
 
   mcp: {
-    getRegistry: () =>
-      request<import("@/types").McpRegistrySnapshot>("/mcp/registry"),
-
-    listServers: () =>
-      request<import("@/types").McpRegistryEntry[]>("/mcp/servers"),
+    getRegistry: () => request<McpRegistrySnapshot>("/mcp/registry"),
 
     getServer: (serverId: string) =>
-      request<import("@/types").McpRegistryEntry>(
-        `/mcp/servers/${serverId}`,
-      ),
+      request<McpRegistryEntry>(`/mcp/servers/${serverId}`),
   },
 
   dev: {
-    submitPlugin: (file: File, packageId: string) => {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("packageId", packageId);
-      return request<import("@/types").PluginDetailResponse>(
-        "/dev/plugins/submit",
-        { method: "POST", body: form, headers: {} },
-      );
-    },
-
-    submitMcpServer: (body: import("@/types").SubmitMcpServerRequest) =>
-      request<import("@/types").McpRegistryReviewItem>("/dev/mcp/servers/submit", {
+    submitMcpServer: (body: SubmitMcpServerRequest) =>
+      request<McpRegistryReviewItem>("/dev/mcp/servers/submit", {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
-    importOfficialMcpServer: (
-      body: import("@/types").ImportOfficialMcpServerRequest,
-    ) =>
-      request<import("@/types").McpRegistryReviewItem>(
-        "/dev/mcp/servers/import-official",
-        { method: "POST", body: JSON.stringify(body) },
-      ),
+    importOfficialMcpServer: (body: ImportOfficialMcpServerRequest) =>
+      request<McpRegistryReviewItem>("/dev/mcp/servers/import-official", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
   },
 
   admin: {
     getReviewQueue: () =>
-      request<import("@/types").PluginReviewItem[]>(
-        "/admin/review-queue",
-      ),
+      request<PluginReviewItem[]>("/admin/review-queue"),
 
     submitReviewDecision: (
       versionId: string,
-      body: import("@/types").ReviewDecisionRequest,
+      body: ReviewDecisionRequest,
     ) =>
       request<void>(`/admin/plugins/${versionId}/verify`, {
         method: "PATCH",
@@ -144,14 +136,18 @@ export const api = {
     deletePlugin: (packageId: string) =>
       request<void>(`/admin/plugins/${packageId}`, { method: "DELETE" }),
 
+    ingestPlugins: (body: IngestPluginsRequest) =>
+      request<IngestReport>("/admin/plugins/ingest", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
     getMcpReviewQueue: () =>
-      request<import("@/types").McpRegistryReviewItem[]>(
-        "/admin/mcp/review-queue",
-      ),
+      request<McpRegistryReviewItem[]>("/admin/mcp/review-queue"),
 
     reviewMcpSubmission: (
       submissionId: string,
-      body: import("@/types").ReviewMcpSubmissionRequest,
+      body: ReviewMcpSubmissionRequest,
     ) =>
       request<void>(
         `/admin/mcp/submissions/${submissionId}/review`,
@@ -161,47 +157,35 @@ export const api = {
 
   oauth: {
     submitCredentials: (
-      body: import("@/types").SubmitOAuthCredentialRequest,
+      body: SubmitOAuthCredentialRequest,
       developerId?: string,
     ) =>
-      request<import("@/types").OAuthCredentialResponse>(
-        "/oauth/credentials",
-        {
-          method: "POST",
-          body: JSON.stringify(body),
-          headers: developerId
-            ? { "x-developer-id": developerId }
-            : {},
-        },
-      ),
+      request<OAuthCredentialResponse>("/oauth/credentials", {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: developerId ? { "x-developer-id": developerId } : {},
+      }),
 
     listByDeveloper: (developerId: string) =>
-      request<import("@/types").OAuthCredentialsListResponse>(
+      request<OAuthCredentialsListResponse>(
         `/oauth/credentials/developer/${developerId}`,
       ),
 
     updateCredentials: (
       id: string,
-      body: import("@/types").UpdateOAuthCredentialRequest,
+      body: UpdateOAuthCredentialRequest,
       developerId?: string,
     ) =>
-      request<import("@/types").OAuthCredentialResponse>(
-        `/oauth/credentials/${id}`,
-        {
-          method: "PUT",
-          body: JSON.stringify(body),
-          headers: developerId
-            ? { "x-developer-id": developerId }
-            : {},
-        },
-      ),
+      request<OAuthCredentialResponse>(`/oauth/credentials/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+        headers: developerId ? { "x-developer-id": developerId } : {},
+      }),
 
     disableCredentials: (id: string, developerId?: string) =>
       request<void>(`/oauth/credentials/${id}`, {
         method: "DELETE",
-        headers: developerId
-          ? { "x-developer-id": developerId }
-          : {},
+        headers: developerId ? { "x-developer-id": developerId } : {},
       }),
   },
 };

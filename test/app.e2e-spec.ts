@@ -3,8 +3,18 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 
+/**
+ * Token the admin/developer guards compare against. The guards read
+ * process.env directly, so it must be set before the app is compiled.
+ */
+const ADMIN_TOKEN = 'e2e-marketplace-token';
+
 describe('AppController (e2e)', () => {
   let app: INestApplication;
+
+  beforeAll(() => {
+    process.env.SYNAPSE_MARKETPLACE_TOKEN = ADMIN_TOKEN;
+  });
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -107,27 +117,36 @@ describe('AppController (e2e)', () => {
     });
   });
 
-  describe('Developer Endpoints', () => {
-    it('/api/v1/dev/plugins/submit (POST) without file should return error', () => {
-      // Without file upload middleware in e2e test context, this returns 500
-      // We're testing that the endpoint exists and handles the request
-      return request(app.getHttpServer())
-        .post('/api/v1/dev/plugins/submit')
-        .expect((res) => {
-          // Either 400 (validation error) or 500 (no file provided)
-          expect([400, 500]).toContain(res.status);
-        });
-    });
-  });
-
   describe('Admin Endpoints', () => {
-    it('/api/v1/admin/review-queue (GET) should return review queue', () => {
+    it('/api/v1/admin/review-queue (GET) should reject an unauthenticated request', () => {
       return request(app.getHttpServer())
         .get('/api/v1/admin/review-queue')
+        .expect(401);
+    });
+
+    it('/api/v1/admin/review-queue (GET) should return review queue with a valid token', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/admin/review-queue')
+        .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
         .expect(200)
         .expect((res) => {
           expect(Array.isArray(res.body)).toBe(true);
         });
+    });
+
+    it('/api/v1/admin/plugins/ingest (POST) should require a token', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/admin/plugins/ingest')
+        .send({ dryRun: true })
+        .expect(401);
+    });
+
+    it('/api/v1/admin/plugins/ingest (POST) should reject a malformed commitSha', () => {
+      return request(app.getHttpServer())
+        .post('/api/v1/admin/plugins/ingest')
+        .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
+        .send({ commitSha: 'not-a-sha' })
+        .expect(400);
     });
   });
 

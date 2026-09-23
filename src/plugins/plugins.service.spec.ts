@@ -243,25 +243,15 @@ describe('PluginsService', () => {
         expiresAt: Math.floor(Date.now() / 1000) + 3600,
       });
 
-      const result = await service.submitPlugin(
-        'com.example.newplugin',
-        'New Plugin',
-        'Description',
-        'Author',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        '1.0.0',
-        { name: 'New Plugin', version: '1.0.0' },
-        '1.0.0',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      );
+      const result = await service.submitPlugin({
+        packageId: 'com.example.newplugin',
+        name: 'New Plugin',
+        description: 'Description',
+        author: 'Author',
+        version: '1.0.0',
+        manifest: { name: 'New Plugin', version: '1.0.0' },
+        minAppVersion: '1.0.0',
+      });
 
       expect(pluginsRepository.create).toHaveBeenCalled();
       expect(versionsRepository.create).toHaveBeenCalled();
@@ -277,25 +267,15 @@ describe('PluginsService', () => {
         expiresAt: Math.floor(Date.now() / 1000) + 3600,
       });
 
-      await service.submitPlugin(
-        'com.example.plugin',
-        'Test Plugin',
-        'Description',
-        'Author',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        '2.0.0',
-        { name: 'Test Plugin', version: '2.0.0' },
-        '1.0.0',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      );
+      await service.submitPlugin({
+        packageId: 'com.example.plugin',
+        name: 'Test Plugin',
+        description: 'Description',
+        author: 'Author',
+        version: '2.0.0',
+        manifest: { name: 'Test Plugin', version: '2.0.0' },
+        minAppVersion: '1.0.0',
+      });
 
       expect(pluginsRepository.create).not.toHaveBeenCalled();
       expect(versionsRepository.create).toHaveBeenCalled();
@@ -306,25 +286,15 @@ describe('PluginsService', () => {
       versionsRepository.findByPluginIdAndVersion.mockResolvedValue(mockVersion);
 
       await expect(
-        service.submitPlugin(
-          'com.example.plugin',
-          'Test Plugin',
-          'Description',
-          'Author',
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          '1.0.0',
-          { name: 'Test Plugin', version: '1.0.0' },
-          '1.0.0',
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-        ),
+        service.submitPlugin({
+          packageId: 'com.example.plugin',
+          name: 'Test Plugin',
+          description: 'Description',
+          author: 'Author',
+          version: '1.0.0',
+          manifest: { name: 'Test Plugin', version: '1.0.0' },
+          minAppVersion: '1.0.0',
+        }),
       ).rejects.toThrow(VersionConflictException);
     });
   });

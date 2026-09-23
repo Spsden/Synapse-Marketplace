@@ -2,7 +2,7 @@
 
 Canonical identities:
 
-- Plugin package: `com.synapse.notion@1.0.2`
+- Plugin package: `com.synapse.notion@1.0.3`
 - MCP registry server: `notion`
 - OAuth provider metadata row: `notion`
 
@@ -25,15 +25,14 @@ Admin and developer curl requests require:
    `com.notion.mcp.add` through the admin API.
 4. Verify plugin/version/storage rows are gone and the Notion OAuth row remains.
 5. Build and validate `Synapse-SDK/plugins/notion`.
-6. Upload `com.synapse.notion-1.0.2.synx` with multipart `packageId` set to
+6. Upload `com.synapse.notion-1.0.3.synx` with multipart `packageId` set to
    `com.synapse.notion`.
 7. Review and publish the uploaded plugin version.
 8. Submit `docs/examples/notion-mcp-registry-v2.json`.
 9. Approve the MCP registry submission.
 10. Fetch `/api/v1/mcp/registry` and verify the published v2 entry.
 11. Install the plugin in a clean Synapse profile and complete MCP OAuth.
-12. Run `notion-get-self`, then create a disposable page with
-    `notion-create-pages`.
+12. Create a disposable page with `notion-create-pages`.
 13. Disconnect and reconnect to verify grant revocation and token refresh.
 14. Repeat on desktop and one mobile target.
 
@@ -41,7 +40,7 @@ Admin and developer curl requests require:
 
 - Multipart `packageId` equals `manifest.id`.
 - The package content hash validates after download.
-- Only `notion-get-self` and `notion-create-pages` are available to the plugin.
+- Only `notion-create-pages` is available to the plugin.
 - The app never sends a raw OAuth token to a remote Synapse cloud endpoint.
 - Registry cache fallback works when Marketplace is temporarily unavailable.
 - No Python runtime or artifact is accepted.

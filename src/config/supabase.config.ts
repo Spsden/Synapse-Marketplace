@@ -16,9 +16,6 @@ export const supabaseConfig = registerAs('supabase', () => ({
   // Time-to-live for signed URLs in seconds (default: 1 hour)
   signedUrlTtlSeconds: parseInt(process.env.SIGNED_URL_TTL_SECONDS || '3600', 10),
 
-  // Maximum upload size in megabytes
-  maxUploadSizeMb: parseInt(process.env.MAX_UPLOAD_SIZE_MB || '50', 10),
-
   // Storage bucket names
   pluginsBucket: process.env.STORAGE_PLUGINS_BUCKET || 'plugins',
   iconsBucket: process.env.STORAGE_ICONS_BUCKET || 'icons',

@@ -210,37 +210,6 @@ export class OAuthClientsRepository {
     }
 
     /**
-     * Find all OAuth clients for a specific plugin.
-     */
-    async findByPluginId(pluginId: string): Promise<OAuthClient[]> {
-        const { data } = await this.supabase
-            .from("plugin_oauth_clients")
-            .select("*")
-            .eq("plugin_id", pluginId)
-            .order("created_at", { ascending: false });
-
-        return (data || []).map((item) => this.mapToEntity(item));
-    }
-
-    /**
-     * Find OAuth clients by package_id.
-     */
-    async findByPackageId(packageId: string): Promise<OAuthClient[]> {
-        // First get the plugin_id from package_id
-        const { data: plugin } = await this.supabase
-            .from("plugins")
-            .select("id")
-            .eq("package_id", packageId)
-            .single();
-
-        if (!plugin) {
-            return [];
-        }
-
-        return this.findByPluginId(plugin.id);
-    }
-
-    /**
      * Find all OAuth clients created by a specific developer.
      */
     async findByCreatedBy(createdBy: string): Promise<OAuthClient[]> {
@@ -254,21 +223,7 @@ export class OAuthClientsRepository {
     }
 
     /**
-     * Find all active OAuth clients for a specific provider.
-     */
-    async findByProvider(provider: OAuthProvider): Promise<OAuthClient[]> {
-        const { data } = await this.supabase
-            .from("plugin_oauth_clients")
-            .select("*")
-            .eq("provider", provider)
-            .eq("is_active", true)
-            .order("created_at", { ascending: false });
-
-        return (data || []).map((item) => this.mapToEntity(item));
-    }
-
-    /**
-     * Find OAuth client by ID.
+     * Find a specific OAuth client by package_id and provider.
      */
     async findById(id: string): Promise<OAuthClient | null> {
         const { data, error } = await this.supabase
@@ -436,20 +391,6 @@ export class OAuthClientsRepository {
     }
 
     /**
-     * Delete OAuth client credentials permanently.
-     */
-    async delete(id: string): Promise<void> {
-        const { error } = await this.supabase
-            .from("plugin_oauth_clients")
-            .delete()
-            .eq("id", id);
-
-        if (error) {
-            throw new Error(`Failed to delete OAuth client: ${error.message}`);
-        }
-    }
-
-    /**
      * Get both client ID and decrypted secret for a plugin/provider combination.
      * Returns null if credentials don't exist or are inactive.
      * This is the ONLY method that should return decrypted secrets for OAuth flows.
@@ -512,5 +453,3 @@ export class OAuthClientsRepository {
         };
     }
 }
-
-import * as crypto from "crypto";

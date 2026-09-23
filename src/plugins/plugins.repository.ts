@@ -39,19 +39,6 @@ export class PluginsRepository {
   }
 
   /**
-   * Check if a plugin exists with the given package ID.
-   */
-  async existsByPackageId(packageId: string): Promise<boolean> {
-    const { data, error } = await this.supabase
-      .from('plugins')
-      .select('id')
-      .eq('package_id', packageId)
-      .single();
-
-    return !error && !!data;
-  }
-
-  /**
    * Find all plugins with a specific status.
    */
   async findByStatus(status: PluginStatus): Promise<Plugin[]> {
@@ -90,48 +77,6 @@ export class PluginsRepository {
       .order('created_at', { ascending: false });
 
     return (data || []).map((item) => this.mapToEntity(item));
-  }
-
-  /**
-   * Find all plugins by author.
-   */
-  async findByAuthor(author: string): Promise<Plugin[]> {
-    const { data } = await this.supabase
-      .from('plugins')
-      .select('*')
-      .eq('author', author)
-      .order('created_at', { ascending: false });
-
-    return (data || []).map((item) => this.mapToEntity(item));
-  }
-
-  /**
-   * Find plugins with latest version matching a given version ID.
-   */
-  async findByLatestVersionId(latestVersionId: string): Promise<Plugin[]> {
-    const { data } = await this.supabase
-      .from('plugins')
-      .select('*')
-      .eq('latest_version_id', latestVersionId);
-
-    return (data || []).map((item) => this.mapToEntity(item));
-  }
-
-  /**
-   * Find parent plugin by version ID.
-   */
-  async findParentByVersionId(versionId: string): Promise<Plugin | null> {
-    const { data, error } = await this.supabase
-      .from('plugins')
-      .select('*')
-      .eq('latest_version_id', versionId)
-      .single();
-
-    if (error || !data) {
-      return null;
-    }
-
-    return this.mapToEntity(data);
   }
 
   /**
@@ -231,22 +176,6 @@ export class PluginsRepository {
   }
 
   /**
-   * Delete a plugin by package ID.
-   */
-  async deleteByPackageId(packageId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('plugins')
-      .delete()
-      .eq('package_id', packageId);
-
-    if (error) {
-      throw new Error(`Failed to delete plugin by package ID: ${error.message}`);
-    }
-
-    this.logger.log(`Deleted plugin with package ID: ${packageId}`);
-  }
-
-  /**
    * Map database row to Plugin entity.
    */
   private mapToEntity(data: any): Plugin {
@@ -268,6 +197,3 @@ export class PluginsRepository {
     };
   }
 }
-
-import * as crypto from 'crypto';
-import { PostgrestError } from '@supabase/supabase-js';

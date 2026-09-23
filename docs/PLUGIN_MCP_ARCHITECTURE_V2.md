@@ -14,46 +14,33 @@ Synapse plugins and MCP servers are separate reviewed artifacts:
 This keeps a plugin usable for MCP and non-MCP actions without embedding
 deployment details in plugin JavaScript.
 
-## MCP deployment strategies
+## MCP deployment strategy
+
+Synapse serves **provider-hosted remote MCP servers only**. Every registry entry
+describes an HTTPS remote reached by the runtime over Streamable HTTP, with SSE
+retained as a compatibility transport. There is no local execution path: no npm
+packages, no Python runtimes, no stdio entrypoints, no desktop developer
+commands, and no Synapse-hosted Node workers.
 
 ### Provider-hosted remote
 
-Use a `remote-http` deployment for an official hosted server such as Notion.
-Prefer Streamable HTTP and retain SSE only as a compatibility deployment.
-Authentication uses a named `mcp-oauth` profile.
+Use a `remote-http` deployment for an official hosted server such as Notion. The
+deployment carries the remote URL, the transport, the platforms it is available
+on, and an optional named auth profile. Authentication uses a named `mcp-oauth`
+profile delivered through the authorization header, or MCP protocol-level
+negotiation.
 
-### Reviewed npm package
-
-Use a Node artifact with an exact npm package and version, plus a
-`node-stdio` deployment for desktop. The review pipeline must resolve and
-store an immutable digest before publication.
-
-### Pinned GitHub source
-
-Use a Node artifact pinned to a commit SHA. Marketplace builds the artifact
-once, records its digest, and publishes only the reviewed result. Runtime
-cloning of a moving branch is not allowed.
-
-### Synapse cloud Node
-
-Use a `synapse-cloud-node` deployment only after explicit cloud
-certification. Certification records resource limits, network policy,
-secret-delivery policy, health checks, and the reviewed artifact digest.
-This is the mobile execution path for Node-only servers that have no remote
-provider endpoint.
-
-### Developer command
-
-Desktop developer mode may run an unreviewed local command. Developer commands
-never enter the public Marketplace registry and are never available on mobile.
+Because nothing is executed locally, an entry has no artifacts and no
+certification step. The reviewed artifact is the reviewed remote URL plus the
+exact tool catalog a plugin may call.
 
 ## Authentication
 
 Plugin manifests declare named connections. Credentials live in the user
-connection vault, while each plugin receives a revocable grant. Desktop
-loopback execution may receive an access token from the local host. Cloud
-execution receives only an opaque grant ID and resolves it through the cloud
-credential broker.
+connection vault, while each plugin receives a revocable grant. Because MCP
+servers are provider-hosted, credentials are never handed to a local process:
+the runtime resolves the grant and attaches it to outbound requests to the
+provider's endpoint.
 
 MCP OAuth is distinct from a provider's normal API OAuth integration. Hosted
 MCP servers may require RFC 9470 discovery, RFC 8414 metadata, dynamic client

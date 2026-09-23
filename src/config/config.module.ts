@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { appConfig } from './app.config';
 import { supabaseConfig } from './supabase.config';
+import { githubConfig } from './github.config';
 
 /**
  * Configuration module that loads all environment-based settings.
@@ -10,7 +11,7 @@ import { supabaseConfig } from './supabase.config';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, supabaseConfig],
+      load: [appConfig, supabaseConfig, githubConfig],
       envFilePath: ['.env.local', '.env'],
     }),
   ],

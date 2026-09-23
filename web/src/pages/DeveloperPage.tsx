@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  useSubmitPlugin,
   useSubmitMcpServer,
   useImportOfficialMcpServer,
   useOAuthCredentials,
@@ -29,13 +28,12 @@ const OAUTH_PROVIDERS: OAuthProvider[] = [
   "stripe",
 ];
 
-type Tab = "plugin" | "mcp" | "import" | "oauth";
+type Tab = "mcp" | "import" | "oauth";
 
 export default function DeveloperPage() {
-  const [tab, setTab] = useState<Tab>("plugin");
+  const [tab, setTab] = useState<Tab>("mcp");
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: "plugin", label: "Submit Plugin" },
     { key: "mcp", label: "Submit MCP Server" },
     { key: "import", label: "Import Official MCP" },
     { key: "oauth", label: "OAuth Credentials" },
@@ -46,7 +44,8 @@ export default function DeveloperPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Developer Portal</h1>
         <p className="text-gray-500 mt-1">
-          Submit plugins and MCP server definitions
+          Submit MCP server definitions and manage OAuth credentials. Plugin
+          packages are built from the source repository by an admin.
         </p>
       </div>
 
@@ -66,75 +65,10 @@ export default function DeveloperPage() {
         ))}
       </div>
 
-      {tab === "plugin" && <PluginSubmitForm />}
       {tab === "mcp" && <McpSubmitForm />}
       {tab === "import" && <ImportOfficialForm />}
       {tab === "oauth" && <OAuthCredentialsManager />}
     </div>
-  );
-}
-
-function PluginSubmitForm() {
-  const [packageId, setPackageId] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const mutation = useSubmitPlugin();
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!file) return;
-    mutation.mutate({ file, packageId });
-  }
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white rounded-lg border border-gray-200 p-6 max-w-lg"
-    >
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">
-        Submit .synx Package
-      </h2>
-
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Package ID
-      </label>
-      <input
-        type="text"
-        required
-        value={packageId}
-        onChange={(e) => setPackageId(e.target.value)}
-        placeholder="com.example.my-plugin"
-        pattern="^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$"
-        className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none mb-4"
-      />
-
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        .synx File
-      </label>
-      <input
-        type="file"
-        required
-        accept=".synx"
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 mb-4"
-      />
-
-      <button
-        type="submit"
-        disabled={mutation.isPending}
-        className="w-full py-2.5 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700 disabled:opacity-50 transition-colors"
-      >
-        {mutation.isPending ? "Submitting..." : "Submit Plugin"}
-      </button>
-
-      {mutation.isError && (
-        <p className="mt-3 text-sm text-red-600">{mutation.error.message}</p>
-      )}
-      {mutation.isSuccess && (
-        <p className="mt-3 text-sm text-green-600">
-          Plugin submitted successfully!
-        </p>
-      )}
-    </form>
   );
 }
 
@@ -144,13 +78,14 @@ function McpSubmitForm() {
     maintainerKind: "community",
     trustLevel: "community-reviewed",
     tools: [],
-    runtimeTargets: ["desktop-node"],
-    platforms: ["macos", "windows", "linux"],
-    source: {},
+    runtimeTargets: ["provider-remote"],
+    platforms: ["macos", "windows", "linux", "android", "ios"],
     createdBy: "",
   });
 
   const [toolsStr, setToolsStr] = useState("");
+  const [remoteUrl, setRemoteUrl] = useState("");
+  const [authProvider, setAuthProvider] = useState("");
 
   function setField<K extends keyof SubmitMcpServerRequest>(
     key: K,
@@ -165,7 +100,39 @@ function McpSubmitForm() {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    mutation.mutate({ ...form, tools } as SubmitMcpServerRequest);
+    const serverId = form.serverId ?? "";
+    const platforms = form.platforms ?? [];
+    const url = remoteUrl.trim();
+    const provider = authProvider.trim();
+    const authProfileId = provider ? `${serverId}-oauth` : undefined;
+
+    mutation.mutate({
+      ...form,
+      schemaVersion: 2,
+      tools,
+      source: { type: "remote-http", url, transport: "streamable-http" },
+      authProfiles: provider
+        ? [
+            {
+              id: authProfileId!,
+              type: "mcp-oauth",
+              provider,
+              delivery: "authorization-header",
+            },
+          ]
+        : undefined,
+      deployments: [
+        {
+          id: `${serverId}-remote-1`,
+          kind: "remote-http",
+          runtimeTarget: "provider-remote",
+          platforms,
+          transport: "streamable-http",
+          url,
+          ...(authProfileId ? { authProfileId } : {}),
+        },
+      ],
+    } as SubmitMcpServerRequest);
   }
 
   return (
@@ -173,9 +140,13 @@ function McpSubmitForm() {
       onSubmit={handleSubmit}
       className="bg-white rounded-lg border border-gray-200 p-6 max-w-lg"
     >
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <h2 className="text-lg font-semibold text-gray-900 mb-1">
         Submit MCP Server Definition
       </h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Synapse only serves provider-hosted remote MCP servers. Local packages,
+        stdio entrypoints, and Synapse-hosted Node workers are not supported.
+      </p>
 
       <div className="space-y-4">
         <Field
@@ -184,6 +155,19 @@ function McpSubmitForm() {
           onChange={(v) => setField("serverId", v)}
           placeholder="my-mcp-server"
           required
+        />
+        <Field
+          label="Hosted MCP URL (HTTPS)"
+          value={remoteUrl}
+          onChange={setRemoteUrl}
+          placeholder="https://mcp.example.com/mcp"
+          required
+        />
+        <Field
+          label="Auth provider (optional)"
+          value={authProvider}
+          onChange={setAuthProvider}
+          placeholder="notion"
         />
         <Field
           label="Display Name"

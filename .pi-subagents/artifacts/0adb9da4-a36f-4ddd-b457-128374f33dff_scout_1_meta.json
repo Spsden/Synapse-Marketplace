@@ -1,0 +1,28 @@
+{
+  "runId": "0adb9da4-a36f-4ddd-b457-128374f33dff",
+  "agent": "scout",
+  "task": "READ-ONLY audit of the Synapse SDK + packaging CLI at /Users/pratap/code/Synapse-SDK (branch feature/mcp-support; there are uncommitted lockfile changes — do NOT touch any uncommitted file, do not run git checkout/reset/add/commit). Do not modify anything.\n\nMap with exact file paths + line ranges:\n- The CLI: existing commands, entry points, how the package is structured.\n- Current .synx package format: archive structure, manifest.json schema in FULL (both v1 and v2 if both exist — capture every field), how plugin.js + assets are bundled, any hashing/signing today.\n- Manifest validation logic that exists today, if any: action IDs, trigger uniqueness, I/O schemas, named connections, MCP server/tool declarations, host capabilities, network domains, platform identifiers.\n- The FJS/QuickJS host contract: what plugin.js must export, the sandbox, the capabilities model, how plugin code is executed.\n- Any Agent Skill support: SKILL.md parsing, synapse.skill.json, references/, scripts/, assets/ handling.\n- Build/packaging path and whether it is deterministic today (entry ordering, timestamps, compression) — or not.\n- Capability intersection model: how session capabilities, skill-declared requirements, user grants, and platform availability are (or should be) intersected.\n- Tooling for tests, linting, type checking, dependency/license analysis, secret scanning (if any).\n\nCapture language/toolchain/package manager/test framework + run commands. Capture the manifest v2 schema verbatim if present. Flag backward-compatibility constraints for existing .synx packages.\n\nWrite a structured recon report to {output}.\n\n---\n**Output:**\nWrite your findings to exactly this path: /Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/outputs/0adb9da4-a36f-4ddd-b457-128374f33dff/recon/sdk.md\nThis path is authoritative for this run.\nIgnore any other output filename or output path mentioned elsewhere, including output destinations in the base agent prompt, system prompt, or task instructions.\n\n## Acceptance Contract\nAcceptance level: reviewed\nCompletion is not accepted from prose alone. End with a structured acceptance report.\n\nCriteria:\n- criterion-1: Implement the requested change without widening scope\n- criterion-2: Return evidence sufficient for an independent acceptance review\n\nRequired evidence: changed-files, tests-added, commands-run, validation-output, residual-risks, no-staged-files\n\nReview gate: required by reviewer.\n\nFinish with a fenced JSON block tagged `acceptance-report` in this shape:\nUse empty arrays when no items apply; array fields contain strings unless object entries are shown.\n```acceptance-report\n{\n  \"criteriaSatisfied\": [\n    {\n      \"id\": \"criterion-1\",\n      \"status\": \"satisfied\",\n      \"evidence\": \"specific proof\"\n    }\n  ],\n  \"changedFiles\": [\n    \"src/file.ts\"\n  ],\n  \"testsAddedOrUpdated\": [\n    \"test/file.test.ts\"\n  ],\n  \"commandsRun\": [\n    {\n      \"command\": \"command\",\n      \"result\": \"passed\",\n      \"summary\": \"short result\"\n    }\n  ],\n  \"validationOutput\": [\n    \"validation output or concise summary\"\n  ],\n  \"residualRisks\": [\n    \"none\"\n  ],\n  \"noStagedFiles\": true,\n  \"diffSummary\": \"short description of the diff\",\n  \"reviewFindings\": [\n    \"blocker: file.ts:12 - issue found, or no blockers\"\n  ],\n  \"manualNotes\": \"anything else the parent should know\"\n}\n```",
+  "exitCode": 0,
+  "model": "zai/glm-5.2:low",
+  "attemptedModels": [
+    "zai/glm-5.2:low"
+  ],
+  "modelAttempts": [
+    {
+      "model": "zai/glm-5.2:low",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 49249,
+        "output": 12103,
+        "cacheRead": 382720,
+        "cacheWrite": 0,
+        "cost": 0,
+        "turns": 18
+      }
+    }
+  ],
+  "transcriptPath": "/Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/0adb9da4-a36f-4ddd-b457-128374f33dff_scout_1_transcript.jsonl",
+  "skills": [],
+  "timestamp": 1786360596226
+}

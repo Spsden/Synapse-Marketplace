@@ -7,7 +7,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppConfigModule } from './config/config.module';
 import { StorageModule } from './storage/storage.module';
 import { PluginsModule } from './plugins/plugins.module';
-import { DeveloperModule } from './developer/developer.module';
+import { IngestModule } from './ingest/ingest.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
@@ -40,7 +40,7 @@ import { McpRegistryModule } from './mcp-registry/mcp-registry.module';
     VaultModule,
     StorageModule,
     PluginsModule,
-    DeveloperModule,
+    IngestModule,
     AdminModule,
     OAuthModule,
     McpRegistryModule,

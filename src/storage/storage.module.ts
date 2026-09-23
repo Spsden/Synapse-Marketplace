@@ -1,6 +1,6 @@
 import { Module, Global } from '@nestjs/common';
 import { SupabaseStorageService } from './supabase-storage.service';
-import { SynxPackageService } from './synx-package.service';
+import { SynxBuilderService } from './synx-builder.service';
 import { StorageService } from './storage.service';
 
 /**
@@ -11,7 +11,7 @@ import { StorageService } from './storage.service';
 @Module({
   providers: [
     SupabaseStorageService,
-    SynxPackageService,
+    SynxBuilderService,
     {
       provide: StorageService,
       useClass: SupabaseStorageService,
@@ -19,7 +19,7 @@ import { StorageService } from './storage.service';
   ],
   exports: [
     SupabaseStorageService,
-    SynxPackageService,
+    SynxBuilderService,
     StorageService,
   ],
 })

@@ -11,7 +11,7 @@ A production-ready, enterprise-grade plugin marketplace API for the Synapse Seco
 - **Plugin Marketplace**: Browse, search, and discover published plugins
 - **MCP Registry Control Plane**: Review and publish trusted MCP server definitions
 - **Version Management**: Semantic versioning with compatibility checking
-- **Developer Submission**: Upload .synx packages via multipart form upload
+- **Source Ingest**: Build `.synx` packages from a pinned commit in the plugin source repository
 - **MCP Registry v2**: Reviewed remote, desktop Node, and certified cloud Node deployments
 - **Admin Review Workflow**: Approve/reject plugins with automated safety checks
 - **Supabase Integration**: PostgreSQL database + CDN-backed storage
@@ -30,8 +30,8 @@ A production-ready, enterprise-grade plugin marketplace API for the Synapse Seco
 ┌─────────────────────▼───────────────────────────────────┐
 │                   NESTJS API GATEWAY                    │
 │  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
-│  │   Store  │  │ Developer│  │        Admin         │  │
-│  │Controller│  │Controller│  │    Controller        │  │
+│  │   Store  │  │  Ingest  │  │        Admin         │  │
+│  │Controller│  │ Service  │  │    Controller        │  │
 │  └────┬─────┘  └────┬─────┘  └──────────┬───────────┘  │
 │       └─────────────┼─────────────────────┘             │
 │                     ▼                                    │
@@ -50,6 +50,11 @@ A production-ready, enterprise-grade plugin marketplace API for the Synapse Seco
 │  │  - analytics       │  │   - temp-uploads bucket  │  │
 │  └────────────────────┘  └──────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
+
+Plugin source (one folder per plugin, `manifest.json` + `plugin.js`)
+        │
+        ▼  pinned commit
+   Ingest builds the .synx deterministically and queues it for review
 ```
 
 ## Database Schema
@@ -123,6 +128,8 @@ cp .env.example .env
 # SUPABASE_URL=https://your-project.supabase.co
 # SUPABASE_ANON_KEY=your-anon-key
 # SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# GITHUB_PLUGIN_REPO=Spsden/Synapse-SDK   # source repo for plugin ingest
+# GITHUB_TOKEN=                           # optional, raises GitHub API limits
 ```
 
 ## Running the Application
@@ -163,16 +170,40 @@ Architecture and operations:
 - `GET /mcp/servers/:serverId` - Get one published MCP server definition
 
 ### Developer APIs (`/api/v1/dev`)
-- `POST /dev/plugins/submit` - Submit a .synx plugin package
 - `POST /dev/mcp/servers/submit` - Submit an MCP server definition for review
+- `POST /dev/mcp/servers/import-official` - Import an official MCP `server.json` with a Synapse overlay
 
 ### Admin APIs (`/api/v1/admin`)
+- `POST /admin/plugins/ingest` - Build plugin versions from a pinned commit in the source repository
 - `GET /admin/review-queue` - Get pending review items
 - `PATCH /admin/plugins/:versionId/verify` - Approve/reject a version
 - `POST /admin/plugins/:versionId/flag` - Flag a plugin for security
 - `DELETE /admin/plugins/:versionId/flag` - Unflag a plugin
+- `DELETE /admin/plugins/:packageId` - Delete a plugin and all its versions
 - `GET /admin/mcp/review-queue` - Get pending MCP registry submissions
 - `PATCH /admin/mcp/submissions/:submissionId/review` - Approve/reject an MCP registry submission
+
+## Plugin Ingest
+
+Plugin packages are built by the marketplace, not uploaded by developers. Ingest
+fetches `manifest.json`, `plugin.js`, and any optional files at a **pinned commit**
+from the configured source repository, builds the `.synx` deterministically, stores
+it, and queues the version for review. Ingest never publishes.
+
+```http
+POST /api/v1/admin/plugins/ingest
+Authorization: Bearer $SYNAPSE_MARKETPLACE_TOKEN
+Content-Type: application/json
+
+{ "commitSha": "38200c8ca92a15601253c0d15bee993e0b2c3fb6", "dryRun": true }
+```
+
+Body fields: `commitSha` (preferred, 40-char hex), `ref` (branch or tag, resolved
+once), `plugins` (limit to folder names), `dryRun` (validate and build only).
+
+Because the artifact is built from an immutable revision and the resulting digest is
+recorded, re-ingesting the same version with different bytes is rejected rather than
+overwritten — bump `version` in the manifest instead.
 
 ## .synx Package Format
 
@@ -239,14 +270,15 @@ src/
 ├── config/            # Configuration
 │   ├── app.config.ts
 │   ├── config.module.ts
+│   ├── github.config.ts
 │   └── supabase.config.ts
-├── developer/         # Developer module
-│   ├── developer.controller.ts
-│   ├── developer.module.ts
-│   └── developer.service.ts
+├── ingest/            # Source ingest (builds .synx from a pinned commit)
+│   ├── github-source.client.ts
+│   ├── ingest.module.ts
+│   └── plugin-ingest.service.ts
 ├── plugins/           # Core plugin module
 │   ├── plugin-versions.repository.ts
-│   ├── plugins.controller.ts
+│   ├── store.controller.ts
 │   ├── plugins.module.ts
 │   ├── plugins.repository.ts
 │   ├── plugins.service.ts
@@ -255,7 +287,7 @@ src/
 │   ├── storage.module.ts
 │   ├── storage.service.ts
 │   ├── supabase-storage.service.ts
-│   └── synx-package.service.ts
+│   └── synx-builder.service.ts
 ├── app.module.ts
 └── main.ts
 ```

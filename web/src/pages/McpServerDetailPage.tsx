@@ -140,14 +140,6 @@ export default function McpServerDetailPage() {
           </Section>
         )}
 
-        {server.artifacts.length > 0 && (
-          <Section title={`Artifacts (${server.artifacts.length})`}>
-            <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
-              {JSON.stringify(server.artifacts, null, 2)}
-            </pre>
-          </Section>
-        )}
-
         {server.deployments.length > 0 && (
           <Section title={`Deployments (${server.deployments.length})`}>
             <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
@@ -164,14 +156,6 @@ export default function McpServerDetailPage() {
               </pre>
             </Section>
           )}
-
-        {server.cloudCertification && (
-          <Section title="Cloud Certification">
-            <pre className="text-xs bg-gray-50 rounded p-3 overflow-auto border border-gray-200">
-              {JSON.stringify(server.cloudCertification, null, 2)}
-            </pre>
-          </Section>
-        )}
 
         {server.upstream && (
           <Section title="Upstream">

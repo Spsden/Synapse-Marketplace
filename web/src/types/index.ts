@@ -149,7 +149,28 @@ export interface McpRegistryReviewItem {
   status: "SUBMITTED" | "PENDING_REVIEW" | "APPROVED" | "REJECTED";
 }
 
+export interface McpDeploymentRequest {
+  id: string;
+  kind: "remote-http";
+  runtimeTarget: "provider-remote";
+  platforms: string[];
+  priority?: number;
+  authProfileId?: string;
+  transport?: "streamable-http" | "sse";
+  url: string;
+  headers?: Record<string, string>;
+}
+
+export interface McpAuthProfileRequest {
+  id: string;
+  type: "oauth2-user" | "api-key" | "mcp-oauth" | "none";
+  provider?: string;
+  delivery?: "authorization-header" | "mcp-protocol";
+  config?: Record<string, unknown>;
+}
+
 export interface SubmitMcpServerRequest {
+  schemaVersion?: 2;
   serverId: string;
   displayName: string;
   description?: string;
@@ -163,9 +184,10 @@ export interface SubmitMcpServerRequest {
   tools: string[];
   runtimeTargets: string[];
   platforms: string[];
-  desktop?: Record<string, unknown>;
-  cloud?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
+  authProfiles?: McpAuthProfileRequest[];
+  deployments: McpDeploymentRequest[];
+  capabilityCatalog?: Record<string, unknown>;
   submissionNotes?: string;
   createdBy: string;
 }
@@ -246,4 +268,38 @@ export interface UpdateOAuthCredentialRequest {
   scope_mode?: ScopeMode;
   metadata?: Record<string, unknown>;
   is_active?: boolean;
+}
+
+export interface IngestPluginsRequest {
+  commitSha?: string;
+  ref?: string;
+  plugins?: string[];
+  dryRun?: boolean;
+}
+
+export type IngestOutcome =
+  | "submitted"
+  | "skipped-identical"
+  | "skipped-invalid"
+  | "rejected-immutable"
+  | "failed";
+
+export interface IngestedPluginResult {
+  path: string;
+  packageId?: string;
+  version?: string;
+  outcome: IngestOutcome;
+  checksumSha256?: string;
+  sizeBytes?: number;
+  message?: string;
+}
+
+export interface IngestReport {
+  repository: string;
+  commitSha: string;
+  dryRun: boolean;
+  submitted: number;
+  skipped: number;
+  failed: number;
+  results: IngestedPluginResult[];
 }
