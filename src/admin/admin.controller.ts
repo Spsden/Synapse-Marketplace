@@ -4,14 +4,13 @@ import { PluginReviewService } from '../plugins/plugin-review.service';
 import { PluginsService } from '../plugins/plugins.service';
 import { PluginReviewItem } from '../common/dto/plugin-review-item.dto';
 import { ReviewDecisionRequestDto } from '../common/dto/review-decision-request.dto';
+import { IngestPluginsRequestDto } from '../common/dto/ingest-plugins-request.dto';
 import { MarketplaceAdminGuard } from '../common/guards/marketplace-api-token.guard';
+import { PluginIngestService, IngestReport } from '../ingest/plugin-ingest.service';
 
 /**
  * Admin API controller for plugin review and management.
  * Endpoints for administrators to review, approve, and reject plugins.
- *
- * In production, these endpoints should be protected with authentication
- * and authorization (e.g., using guards).
  *
  * Base path: /api/v1/admin
  */
@@ -22,7 +21,26 @@ export class AdminController {
   constructor(
     private readonly reviewService: PluginReviewService,
     private readonly pluginsService: PluginsService,
+    private readonly ingestService: PluginIngestService,
   ) {}
+
+  /**
+   * Builds plugin versions from reviewed source in the configured git repository.
+   *
+   * Ingest never publishes: every version it creates enters the normal review
+   * queue, where an admin still has to approve the exact built artifact.
+   */
+  @Post('plugins/ingest')
+  @ApiOperation({
+    summary: 'Ingest plugin versions from the source repository',
+    description:
+      'Fetches manifest.json and plugin.js at a pinned revision, builds the .synx ' +
+      'artifact deterministically, stores it, and queues it for review. ' +
+      'Use dryRun to validate and build without writing anything.',
+  })
+  async ingestPlugins(@Body() body: IngestPluginsRequestDto): Promise<IngestReport> {
+    return this.ingestService.ingest(body);
+  }
 
   /**
    * Retrieves the review queue - all plugin versions awaiting review.

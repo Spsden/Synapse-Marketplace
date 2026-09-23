@@ -8,6 +8,10 @@ const colorMap: Record<string, string> = {
   FLAGGED: "bg-red-100 text-red-800 border-red-200",
   DELETED: "bg-gray-100 text-gray-600 border-gray-200",
   APPROVED: "bg-green-100 text-green-800 border-green-200",
+  "skipped-identical": "bg-gray-100 text-gray-600 border-gray-200",
+  "skipped-invalid": "bg-orange-100 text-orange-800 border-orange-200",
+  "rejected-immutable": "bg-red-100 text-red-800 border-red-200",
+  failed: "bg-red-100 text-red-800 border-red-200",
 };
 
 export default function StatusBadge({ status }: { status: Status }) {

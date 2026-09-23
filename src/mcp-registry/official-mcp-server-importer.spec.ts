@@ -1,4 +1,5 @@
 import { importOfficialMcpServer } from './official-mcp-server-importer';
+import { PluginStoreException } from '../common/exceptions';
 
 describe('importOfficialMcpServer', () => {
   it('imports an official hosted server with Synapse auth and tool policy', () => {
@@ -50,66 +51,7 @@ describe('importOfficialMcpServer', () => {
     });
   });
 
-  it('imports an npm stdio package and maps required auth environment', () => {
-    const imported = importOfficialMcpServer(
-      {
-        name: 'io.github.example/spotify',
-        title: 'Spotify MCP',
-        description: 'Control Spotify',
-        version: '0.4.0',
-        packages: [
-          {
-            registryType: 'npm',
-            identifier: '@example/spotify-mcp',
-            version: '0.4.0',
-            transport: { type: 'stdio' },
-            environmentVariables: [
-              {
-                name: 'SPOTIFY_ACCESS_TOKEN',
-                isRequired: true,
-                isSecret: true,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        serverId: 'spotify',
-        tools: ['spotify-search', 'spotify-play'],
-        createdBy: 'developer@example.com',
-        maintainerName: 'Example',
-        authProfiles: [
-          {
-            id: 'spotify-token',
-            type: 'oauth2-user',
-            provider: 'spotify',
-            delivery: 'environment',
-            config: {
-              environmentVariables: ['SPOTIFY_ACCESS_TOKEN'],
-            },
-          },
-        ],
-      },
-    );
-
-    expect(imported.artifacts).toEqual([
-      expect.objectContaining({
-        runtime: 'node',
-        source: expect.objectContaining({
-          packageName: '@example/spotify-mcp',
-          version: '0.4.0',
-        }),
-      }),
-    ]);
-    expect(imported.deployments).toEqual([
-      expect.objectContaining({
-        kind: 'node-stdio',
-        authProfileId: 'spotify-token',
-      }),
-    ]);
-  });
-
-  it('rejects Python-only official packages', () => {
+  it('rejects an official server that only ships local packages', () => {
     expect(() =>
       importOfficialMcpServer(
         {
@@ -132,26 +74,50 @@ describe('importOfficialMcpServer', () => {
           maintainerName: 'Example',
         },
       ),
-    ).toThrow('no supported remote or npm stdio deployment');
+    ).toThrow(PluginStoreException);
   });
 
-  it('rejects secret values embedded in the review overlay', () => {
+  it('rejects a secret remote URL variable', () => {
     expect(() =>
       importOfficialMcpServer(
         {
           name: 'io.github.example/private',
           description: 'Private MCP',
           version: '1.0.0',
-          packages: [
+          remotes: [
             {
-              registryType: 'npm',
-              identifier: '@example/private-mcp',
-              version: '1.0.0',
-              transport: { type: 'stdio' },
-              environmentVariables: [
+              type: 'streamable-http',
+              url: 'https://mcp.example.com/{token}/mcp',
+              variables: { token: { isSecret: true } },
+            },
+          ],
+        },
+        {
+          serverId: 'private-mcp',
+          tools: ['private-tool'],
+          createdBy: 'developer@example.com',
+          maintainerName: 'Example',
+          remoteVariables: { token: 'must-not-enter-the-registry' },
+        },
+      ),
+    ).toThrow(/Secret remote URL variable/);
+  });
+
+  it('rejects a secret header value', () => {
+    expect(() =>
+      importOfficialMcpServer(
+        {
+          name: 'io.github.example/private',
+          description: 'Private MCP',
+          version: '1.0.0',
+          remotes: [
+            {
+              type: 'streamable-http',
+              url: 'https://mcp.example.com/mcp',
+              headers: [
                 {
-                  name: 'PRIVATE_API_KEY',
-                  isRequired: true,
+                  name: 'Authorization',
+                  value: 'Bearer must-not-enter-the-registry',
                   isSecret: true,
                 },
               ],
@@ -163,11 +129,8 @@ describe('importOfficialMcpServer', () => {
           tools: ['private-tool'],
           createdBy: 'developer@example.com',
           maintainerName: 'Example',
-          packageInputs: {
-            PRIVATE_API_KEY: 'must-not-enter-the-registry',
-          },
         },
       ),
-    ).toThrow('cannot be supplied through overlay.packageInputs');
+    ).toThrow(/Secret header/);
   });
 });

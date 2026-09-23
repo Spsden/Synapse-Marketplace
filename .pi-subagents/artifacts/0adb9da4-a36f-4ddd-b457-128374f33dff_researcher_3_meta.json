@@ -1,0 +1,28 @@
+{
+  "runId": "0adb9da4-a36f-4ddd-b457-128374f33dff",
+  "agent": "researcher",
+  "task": "Research with primary-source citations the hybrid GitHub + backend extension-marketplace architecture we are adopting for Synapse, modeled on Raycast and WinGet. Keep it implementation-oriented — we need concrete schema/practice details to design our own system.\n\nCover each of these with source URLs + short quotes where useful, and note confidence + gaps:\n1. Raycast extension store: where source lives, the review/PR flow, manifest schema shape, the permissions/capability model, and the human-readable PERMISSION REPORT format Raycast shows on install.\n2. WinGet: how manifests are GitHub-sourced (winget-pkgs repo), PR submission + bot/automated review, the hierarchical manifest YAML, validation pipelines, how the REST source/index relates to the GitHub manifests, and fields for compatibility/architecture/min-version/revocation.\n3. Open VSX / VS Code marketplace for comparison (GitHub-sourced extensions, .vsix packaging, signing, registry index).\n4. Deterministic archive creation: how to make zip builds reproducible (stable entry ordering, normalized timestamps/mode, fixed compression), with concrete tooling/options.\n5. Whole-package signing + provenance: Sigstore/cosign/gitsign, in-toto/SLSA provenance, signing-provider interface patterns, keyless vs KMS, what gets signed (archive hash) and how to express a trust model where 'a package hash is NOT publisher authentication' (sign the hash with a publisher/CI identity + a provenance attestation binding source commit → artifact).\n6. Signed registry-index formats: how a signed registry.json / manifest list carrying hashes, signatures, signing key id, compatibility, and a revocation list is structured and served over a CDN; snapshot vs delta models.\n7. Capability-diff / permission-report generation: how to compute the diff between a new and a published version's declared capabilities and render a human-readable report.\n8. Security pitfalls to avoid: pull_request_target abuse, executing untrusted fork code with secrets, symlink/path traversal (zip-slip), duplicate zip entries, oversized archives, and how trusted post-merge publishing workflows stay isolated from PR code.\n\nWrite the brief to {output}.\n\n---\nUpdate progress at: /Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/progress/0adb9da4-a36f-4ddd-b457-128374f33dff/progress.md\n\n---\n**Output:**\nWrite your findings to exactly this path: /Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/outputs/0adb9da4-a36f-4ddd-b457-128374f33dff/recon/research.md\nThis path is authoritative for this run.\nIgnore any other output filename or output path mentioned elsewhere, including output destinations in the base agent prompt, system prompt, or task instructions.\n\n## Acceptance Contract\nAcceptance level: reviewed\nCompletion is not accepted from prose alone. End with a structured acceptance report.\n\nCriteria:\n- criterion-1: Implement the requested change without widening scope\n- criterion-2: Return evidence sufficient for an independent acceptance review\n\nRequired evidence: changed-files, tests-added, commands-run, validation-output, residual-risks, no-staged-files\n\nReview gate: required by reviewer.\n\nFinish with a fenced JSON block tagged `acceptance-report` in this shape:\nUse empty arrays when no items apply; array fields contain strings unless object entries are shown.\n```acceptance-report\n{\n  \"criteriaSatisfied\": [\n    {\n      \"id\": \"criterion-1\",\n      \"status\": \"satisfied\",\n      \"evidence\": \"specific proof\"\n    }\n  ],\n  \"changedFiles\": [\n    \"src/file.ts\"\n  ],\n  \"testsAddedOrUpdated\": [\n    \"test/file.test.ts\"\n  ],\n  \"commandsRun\": [\n    {\n      \"command\": \"command\",\n      \"result\": \"passed\",\n      \"summary\": \"short result\"\n    }\n  ],\n  \"validationOutput\": [\n    \"validation output or concise summary\"\n  ],\n  \"residualRisks\": [\n    \"none\"\n  ],\n  \"noStagedFiles\": true,\n  \"diffSummary\": \"short description of the diff\",\n  \"reviewFindings\": [\n    \"blocker: file.ts:12 - issue found, or no blockers\"\n  ],\n  \"manualNotes\": \"anything else the parent should know\"\n}\n```",
+  "exitCode": 0,
+  "model": "zai/glm-5.2:medium",
+  "attemptedModels": [
+    "zai/glm-5.2:medium"
+  ],
+  "modelAttempts": [
+    {
+      "model": "zai/glm-5.2:medium",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 63762,
+        "output": 18631,
+        "cacheRead": 387392,
+        "cacheWrite": 0,
+        "cost": 0,
+        "turns": 13
+      }
+    }
+  ],
+  "transcriptPath": "/Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/0adb9da4-a36f-4ddd-b457-128374f33dff_researcher_3_transcript.jsonl",
+  "skills": [],
+  "timestamp": 1786360707230
+}

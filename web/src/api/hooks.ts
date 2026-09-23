@@ -4,6 +4,13 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { api } from "./client";
+import type {
+  IngestPluginsRequest,
+  ReviewDecisionRequest,
+  ReviewMcpSubmissionRequest,
+  SubmitOAuthCredentialRequest,
+  UpdateOAuthCredentialRequest,
+} from "@/types";
 
 export function usePlugins(params?: {
   category?: string;
@@ -48,27 +55,11 @@ export function useMcpRegistry() {
   });
 }
 
-export function useMcpServers() {
-  return useQuery({
-    queryKey: ["mcp-servers"],
-    queryFn: () => api.mcp.listServers(),
-  });
-}
-
 export function useMcpServer(serverId: string) {
   return useQuery({
     queryKey: ["mcp-server", serverId],
     queryFn: () => api.mcp.getServer(serverId),
     enabled: !!serverId,
-  });
-}
-
-export function useSubmitPlugin() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ file, packageId }: { file: File; packageId: string }) =>
-      api.dev.submitPlugin(file, packageId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["plugins"] }),
   });
 }
 
@@ -110,7 +101,7 @@ export function useReviewDecision() {
       body,
     }: {
       versionId: string;
-      body: import("@/types").ReviewDecisionRequest;
+      body: ReviewDecisionRequest;
     }) => api.admin.submitReviewDecision(versionId, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-review-queue"] }),
   });
@@ -151,6 +142,20 @@ export function useDeletePlugin() {
   });
 }
 
+export function useIngestPlugins() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: IngestPluginsRequest) =>
+      api.admin.ingestPlugins(body),
+    onSuccess: (report) => {
+      if (!report.dryRun) {
+        qc.invalidateQueries({ queryKey: ["admin-review-queue"] });
+        qc.invalidateQueries({ queryKey: ["plugins"] });
+      }
+    },
+  });
+}
+
 export function useReviewMcpSubmission() {
   const qc = useQueryClient();
   return useMutation({
@@ -159,7 +164,7 @@ export function useReviewMcpSubmission() {
       body,
     }: {
       submissionId: string;
-      body: import("@/types").ReviewMcpSubmissionRequest;
+      body: ReviewMcpSubmissionRequest;
     }) => api.admin.reviewMcpSubmission(submissionId, body),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["admin-mcp-review-queue"] }),
@@ -181,7 +186,7 @@ export function useSubmitOAuthCredential() {
       body,
       developerId,
     }: {
-      body: import("@/types").SubmitOAuthCredentialRequest;
+      body: SubmitOAuthCredentialRequest;
       developerId?: string;
     }) => api.oauth.submitCredentials(body, developerId),
     onSuccess: (_data, variables) =>
@@ -200,7 +205,7 @@ export function useUpdateOAuthCredential() {
       developerId,
     }: {
       id: string;
-      body: import("@/types").UpdateOAuthCredentialRequest;
+      body: UpdateOAuthCredentialRequest;
       developerId?: string;
     }) => api.oauth.updateCredentials(id, body, developerId),
     onSuccess: () =>

@@ -38,13 +38,4 @@ export class OAuthRedirectService {
         return `synapse://oauth/${provider}`;
     }
 
-    /**
-     * Check if a provider requires HTTPS callback URLs.
-     *
-     * @param provider - The OAuth provider name
-     * @returns true if the provider requires HTTPS, false otherwise
-     */
-    requiresHttps(provider: string): boolean {
-        return this.HTTPS_ONLY_PROVIDERS.includes(provider);
-    }
 }

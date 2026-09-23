@@ -30,7 +30,7 @@ describe('McpRegistryService', () => {
     source: { type: 'remote-http', url: 'https://mcp.notion.com/mcp' },
     auth: { type: 'oauth2-user', provider: 'notion' },
     tools: ['notion-create-pages'],
-    runtimeTargets: ['desktop-node', 'cloud-worker'],
+    runtimeTargets: ['provider-remote'],
     platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
     desktop: { transport: 'http' },
     cloud: { transport: 'http' },
@@ -61,7 +61,7 @@ describe('McpRegistryService', () => {
     source: { type: 'remote-http', url: 'https://mcp.notion.com/mcp' },
     auth: { type: 'oauth2-user', provider: 'notion' },
     tools: ['notion-create-pages'],
-    runtimeTargets: ['desktop-node', 'cloud-worker'],
+    runtimeTargets: ['provider-remote'],
     platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
     desktop: { transport: 'http' },
     cloud: { transport: 'http' },
@@ -185,42 +185,36 @@ describe('McpRegistryService', () => {
     );
   });
 
-  it('rejects Python artifacts in schema v2', async () => {
+  it('rejects a deployment that references an undeclared auth profile', async () => {
+    entriesRepository.findByServerId.mockResolvedValue(null);
+    submissionsRepository.findOpenByServerId.mockResolvedValue(null);
+
     await expect(
       service.submitServerDefinition({
-        schemaVersion: 2,
-        serverId: 'python-server',
-        displayName: 'Python MCP',
+        serverId: 'notion',
+        displayName: 'Notion MCP',
         currentVersion: '1.0.0',
-        maintainerName: 'Community',
-        maintainerKind: 'community',
-        trustLevel: 'community-reviewed',
-        source: { type: 'github' },
-        tools: ['example'],
-        runtimeTargets: ['desktop-node'],
+        maintainerName: 'Notion',
+        maintainerKind: 'official',
+        trustLevel: 'official',
+        source: { type: 'remote-http' },
+        tools: ['notion-create-pages'],
+        runtimeTargets: ['provider-remote'],
         platforms: ['macos'],
-        artifacts: [
-          {
-            id: 'python',
-            runtime: 'python',
-            source: {
-              type: 'github',
-              url: 'https://example.invalid/python',
-            },
-          },
-        ],
         deployments: [
           {
-            id: 'desktop',
-            kind: 'node-stdio',
-            runtimeTarget: 'desktop-node',
+            id: 'notion-remote-1',
+            kind: 'remote-http',
+            runtimeTarget: 'provider-remote',
             platforms: ['macos'],
-            artifactId: 'python',
+            transport: 'streamable-http',
+            url: 'https://mcp.notion.com/mcp',
+            authProfileId: 'missing-profile',
           },
         ],
         createdBy: 'developer@example.com',
       }),
-    ).rejects.toThrow('Only Node artifacts are accepted');
+    ).rejects.toThrow(/unknown auth profile/);
   });
 
   it('creates an update submission when the server already exists', async () => {
@@ -240,11 +234,28 @@ describe('McpRegistryService', () => {
       source: { type: 'remote-http', url: 'https://mcp.notion.com/mcp' },
       auth: { type: 'oauth2-user', provider: 'notion' },
       tools: ['notion-create-pages'],
-      runtimeTargets: ['desktop-node', 'cloud-worker'],
+      runtimeTargets: ['provider-remote'],
       platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
-      desktop: { transport: 'http' },
-      cloud: { transport: 'http' },
       capabilities: { oauth: true },
+      authProfiles: [
+        {
+          id: 'notion-oauth',
+          type: 'mcp-oauth',
+          provider: 'notion',
+          delivery: 'authorization-header',
+        },
+      ],
+      deployments: [
+        {
+          id: 'notion-remote-1',
+          kind: 'remote-http',
+          runtimeTarget: 'provider-remote',
+          platforms: ['macos', 'windows', 'linux', 'android', 'ios'],
+          transport: 'streamable-http',
+          url: 'https://mcp.notion.com/mcp',
+          authProfileId: 'notion-oauth',
+        },
+      ],
       submissionNotes: 'Add page creation support',
       createdBy: 'developer@example.com',
     });

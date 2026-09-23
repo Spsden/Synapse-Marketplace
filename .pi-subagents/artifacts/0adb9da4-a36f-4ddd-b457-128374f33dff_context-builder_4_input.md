@@ -1,0 +1,81 @@
+# Task for context-builder
+
+Synthesize the design deliverables for the Synapse Marketplace redesign. Read the four recon reports first:
+- Marketplace: Output saved to: /Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/outputs/0adb9da4-a36f-4ddd-b457-128374f33dff/recon/marketplace.md (28.4 KB, 354 lines). Read this file if needed.
+- SDK: Output saved to: /Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/outputs/0adb9da4-a36f-4ddd-b457-128374f33dff/recon/sdk.md (2.0 KB, 19 lines). Read this file if needed.
+- Main app: Output saved to: /Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/outputs/0adb9da4-a36f-4ddd-b457-128374f33dff/recon/app.md (21.5 KB, 232 lines). Read this file if needed.
+- External patterns: Output saved to: /Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/outputs/0adb9da4-a36f-4ddd-b457-128374f33dff/recon/research.md (42.0 KB, 231 lines). Read this file if needed.
+
+Produce ONE comprehensive design document at {output} with these sections, each evidence-backed with file refs drawn from the recon:
+
+1. Evidence-backed architecture report — current state across all three repos; the hybrid GitHub + backend responsibility split (GitHub = source/PRs/review/CODEOWNERS/schemas/tests/policies; GitHub Actions = validation + capability-diff + deterministic build + hash + sign + publish; Supabase = index, accounts, search, stats, review state where needed, paid/private, MCP registry + OAuth, revocation; object storage = immutable signed artifacts, icons, screenshots, CDN; signed static registry.json = client discovery); and a keep/adapt/deprecate mapping for every existing component.
+2. Current-state flow diagram (Mermaid or ASCII) — submission → review → storage → publication → download today, with file refs.
+3. Target-state flow diagram — the same lifecycle in the new model (GitHub PR → untrusted-fork CI validation WITHOUT secrets → merge → trusted post-merge build/sign/publish workflow WITH secrets → Supabase index sync → signed registry.json snapshot over CDN → client), naming which system owns each step.
+4. Proposed GitHub repo layout — actions/<id>/, skills/<id>/, schemas/, policies/, maintainers.json, .github/workflows/ conventions, with the manifest + synapse.skill.json schemas.
+5. Deterministic build + signing format — exact archive format for .synx and .synskill, how determinism is achieved, the precise whole-archive SHA-256 definition, the signing-provider INTERFACE (TypeScript-style type), what a DEVELOPMENT (non-production) signature looks like, and provenance fields (source repo, commit SHA, workflow/run identity, signing key id).
+6. Signed registry.json schema — full JSON schema: package entries with hashes, signatures, signing key id, min_synapse_version, supported_platforms, visibility, the revocation list, and the snapshot-level version + signature.
+7. Capability-diff / permission-report format — the exact human-readable report shape and the diff algorithm.
+8. Database migration proposal — additive, non-destructive Supabase/Postgres changes: new columns/tables (extension_type, source_repository, source_path, source_commit_sha, artifact_url/storage coords, artifact_sha256, artifact_signature, signing_key_id, min_synapse_version, supported_platforms, published_at, revoked_at, revocation_reason, visibility, manifest JSON, capability summary JSON), backfill strategy, and how existing records + the current upload/download path are preserved.
+9. Milestone-1 scope — the smallest complete vertical slice (validate unpacked action-plugin dir; validate unpacked skill dir; build deterministic .synx + .synskill; whole-package SHA-256; unsigned DEV registry snapshot; signing-provider interface + dev impl; import snapshot into the existing Marketplace read model; preserve current upload/download path). Specify exactly which files/packages to create and in WHICH repo (Synapse-SDK vs Synapse-Marketplace), plus the minimal security-test list.
+10. Phased migration plan — ordered phases for everything beyond milestone 1, with risks.
+11. Open questions / decisions for the human — anything needing a product or security decision before implementation.
+12. A self-contained 'Milestone-1 implementation meta-prompt' — a complete, copy-pasteable task spec a fresh-context worker can implement from WITHOUT seeing this conversation: exact repo + file targets, the signing-provider interface, the validation rules (manifest v2, reject v1 fields, action IDs + trigger uniqueness, I/O schemas, named connections, MCP server/tool declarations, host capabilities, network domains, platform identifiers, plugin.js presence, capability increase detection vs published version; skills: require SKILL.md, safe YAML frontmatter parse, valid name+description, safe relative paths, reject symlinks + traversal, validate synapse.skill.json, inventory+hash every resource, flag sandbox scripts, capability-increase detection), the security tests (zip/path traversal, symlinks, oversized files/archives, duplicate archive paths, hash mismatch, signature failure, manifest/package identity mismatch, attempted secret inclusion, undeclared capability use, revoked-artifact handling, malicious/malformed SKILL.md frontmatter), backward-compat constraints (existing .synx + current APIs/upload-download must keep working; do not touch dirty worktrees in /Users/pratap/code/synapse or uncommitted lockfiles in Synapse-SDK), and verification commands. State explicitly that PRODUCTION SIGNING MUST NOT BE FABRICATED — only the interface + a clearly-marked dev implementation.
+
+Be concrete and schema-complete. This document is the single source of truth for the implementation step.
+
+---
+**Output:**
+Write your findings to exactly this path: /Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/outputs/0adb9da4-a36f-4ddd-b457-128374f33dff/design/synapse-marketplace-redesign.md
+This path is authoritative for this run.
+Ignore any other output filename or output path mentioned elsewhere, including output destinations in the base agent prompt, system prompt, or task instructions.
+
+## Acceptance Contract
+Acceptance level: reviewed
+Completion is not accepted from prose alone. End with a structured acceptance report.
+
+Criteria:
+- criterion-1: Implement the requested change without widening scope
+- criterion-2: Return evidence sufficient for an independent acceptance review
+
+Required evidence: changed-files, tests-added, commands-run, validation-output, residual-risks, no-staged-files
+
+Review gate: required by reviewer.
+
+Finish with a fenced JSON block tagged `acceptance-report` in this shape:
+Use empty arrays when no items apply; array fields contain strings unless object entries are shown.
+```acceptance-report
+{
+  "criteriaSatisfied": [
+    {
+      "id": "criterion-1",
+      "status": "satisfied",
+      "evidence": "specific proof"
+    }
+  ],
+  "changedFiles": [
+    "src/file.ts"
+  ],
+  "testsAddedOrUpdated": [
+    "test/file.test.ts"
+  ],
+  "commandsRun": [
+    {
+      "command": "command",
+      "result": "passed",
+      "summary": "short result"
+    }
+  ],
+  "validationOutput": [
+    "validation output or concise summary"
+  ],
+  "residualRisks": [
+    "none"
+  ],
+  "noStagedFiles": true,
+  "diffSummary": "short description of the diff",
+  "reviewFindings": [
+    "blocker: file.ts:12 - issue found, or no blockers"
+  ],
+  "manualNotes": "anything else the parent should know"
+}
+```

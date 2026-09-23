@@ -1,6 +1,32 @@
 import { VersionStatus } from '../enums/version-status.enum';
 
 /**
+ * Where an ingested version was built from.
+ *
+ * Populated for versions built by the GitHub ingest path, where the artifact is
+ * compiled from a pinned commit. Absent for legacy developer uploads.
+ */
+export interface PluginVersionSource {
+  /** Source host, e.g. 'github'. */
+  provider: string;
+
+  /** Repository in `owner/name` form. */
+  repository: string;
+
+  /** Pinned commit the artifact was built from. */
+  commitSha: string;
+
+  /** Directory within the repository, e.g. 'plugins/notion'. */
+  path: string;
+
+  /** Per-file git blob SHAs used for the build (path -> sha). */
+  blobShas: Record<string, string>;
+
+  /** Raw upstream manifest as committed. */
+  upstream: Record<string, any>;
+}
+
+/**
  * Represents a specific version release of a plugin.
  *
  * Table: plugin_versions
@@ -70,6 +96,9 @@ export interface PluginVersion {
 
   /** Notes about why this version was flagged. */
   flagReason?: string | null;
+
+  /** Provenance for versions built from a pinned source revision. */
+  source?: PluginVersionSource | null;
 }
 
 /**
@@ -86,4 +115,5 @@ export interface CreatePluginVersionDto {
   tempStoragePath?: string;
   fileSizeBytes?: number;
   checksumSha256?: string;
+  source?: PluginVersionSource;
 }

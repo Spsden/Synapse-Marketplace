@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { MulterModule } from '@nestjs/platform-express';
 import { PluginsService } from './plugins.service';
 import { PluginReviewService } from './plugin-review.service';
 import { PluginsRepository } from './plugins.repository';
@@ -12,15 +11,7 @@ import { StorageModule } from '../storage/storage.module';
  * Plugins module - handles core plugin functionality.
  */
 @Module({
-  imports: [
-    ConfigModule,
-    StorageModule,
-    MulterModule.register({
-      limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB
-      },
-    }),
-  ],
+  imports: [ConfigModule, StorageModule],
   controllers: [StoreController],
   providers: [
     PluginsService,

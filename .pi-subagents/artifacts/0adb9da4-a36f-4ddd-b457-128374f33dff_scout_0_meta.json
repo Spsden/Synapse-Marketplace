@@ -1,0 +1,28 @@
+{
+  "runId": "0adb9da4-a36f-4ddd-b457-128374f33dff",
+  "agent": "scout",
+  "task": "READ-ONLY audit of the Synapse Marketplace backend at /Users/pratap/code/Synapse-Marketplace (branch codex/mcp-registry-control-plane, currently clean). Do not modify any files.\n\nMap the COMPLETE current extension lifecycle in this repo with exact file paths + line ranges as evidence:\n- Package submission flow: how a .synx package is submitted/uploaded today end to end.\n- Review/approval state machine: where it lives (DB tables, services, API/edge routes), states and transitions.\n- The StorageService abstraction: its interface/type, all current providers (Supabase Storage / Cloudflare R2 / local), how artifacts are written and read, and the CURRENT upload + download path that must be preserved during migration.\n- Database schema inventory: every table related to extensions, manifests, versions, publishers, the MCP registry, OAuth config, analytics, ratings, downloads/installs. Capture column names + types.\n- The current registry/index/manifest model served to clients (any registry.json or equivalent).\n- Supabase usage: auth, RLS policies, storage, edge functions, triggers.\n- API surface (REST/RPC/edge) for discovery, search, download, install, MCP registry.\n- Any signing/hashing that exists today (and what is NOT signed).\n- MCP registry + OAuth configuration handling.\n- Publisher authentication/identity.\n\nAlso capture: tech stack, language, framework, package manager, how to run + test locally (commands), env/secrets shape (do NOT print secret values).\n\nWrite a structured recon report to {output} with sections: Repo Overview; Architecture Summary; End-to-end submission→review→storage→publication→download flow as a numbered sequence with file refs; DB schema inventory; StorageService contract; MCP/OAuth; a preliminary keep/adapt/deprecate classification; local run/test commands; Backward-compatibility must-haves; Open questions. Be evidence-backed with file:line refs throughout.\n\n---\n**Output:**\nWrite your findings to exactly this path: /Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/outputs/0adb9da4-a36f-4ddd-b457-128374f33dff/recon/marketplace.md\nThis path is authoritative for this run.\nIgnore any other output filename or output path mentioned elsewhere, including output destinations in the base agent prompt, system prompt, or task instructions.\n\n## Acceptance Contract\nAcceptance level: reviewed\nCompletion is not accepted from prose alone. End with a structured acceptance report.\n\nCriteria:\n- criterion-1: Implement the requested change without widening scope\n- criterion-2: Return evidence sufficient for an independent acceptance review\n\nRequired evidence: changed-files, tests-added, commands-run, validation-output, residual-risks, no-staged-files\n\nReview gate: required by reviewer.\n\nFinish with a fenced JSON block tagged `acceptance-report` in this shape:\nUse empty arrays when no items apply; array fields contain strings unless object entries are shown.\n```acceptance-report\n{\n  \"criteriaSatisfied\": [\n    {\n      \"id\": \"criterion-1\",\n      \"status\": \"satisfied\",\n      \"evidence\": \"specific proof\"\n    }\n  ],\n  \"changedFiles\": [\n    \"src/file.ts\"\n  ],\n  \"testsAddedOrUpdated\": [\n    \"test/file.test.ts\"\n  ],\n  \"commandsRun\": [\n    {\n      \"command\": \"command\",\n      \"result\": \"passed\",\n      \"summary\": \"short result\"\n    }\n  ],\n  \"validationOutput\": [\n    \"validation output or concise summary\"\n  ],\n  \"residualRisks\": [\n    \"none\"\n  ],\n  \"noStagedFiles\": true,\n  \"diffSummary\": \"short description of the diff\",\n  \"reviewFindings\": [\n    \"blocker: file.ts:12 - issue found, or no blockers\"\n  ],\n  \"manualNotes\": \"anything else the parent should know\"\n}\n```",
+  "exitCode": 0,
+  "model": "zai/glm-5.2:low",
+  "attemptedModels": [
+    "zai/glm-5.2:low"
+  ],
+  "modelAttempts": [
+    {
+      "model": "zai/glm-5.2:low",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 72636,
+        "output": 12770,
+        "cacheRead": 738624,
+        "cacheWrite": 0,
+        "cost": 0,
+        "turns": 22
+      }
+    }
+  ],
+  "transcriptPath": "/Users/pratap/code/Synapse-Marketplace/.pi-subagents/artifacts/0adb9da4-a36f-4ddd-b457-128374f33dff_scout_0_transcript.jsonl",
+  "skills": [],
+  "timestamp": 1786360651664
+}

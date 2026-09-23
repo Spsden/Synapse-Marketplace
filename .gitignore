@@ -29,3 +29,6 @@ build
 # Frontend
 web/node_modules
 web/dist
+
+# Registry is its own repository now (https://github.com/vishalshelkepatil/synapse-plugin-registry)
+registry/

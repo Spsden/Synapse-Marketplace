@@ -185,42 +185,6 @@ export class OAuthCredentialsController {
         };
     }
 
-    // /**
-    //  * List OAuth credentials by plugin.
-    //  */
-    // @ApiOperation({
-    //     summary: "Get OAuth credentials for a plugin",
-    //     description:
-    //         "Retrieve all OAuth credentials for a specific plugin. Secrets are not returned.",
-    // })
-    // @ApiQuery({
-    //     name: "plugin_id",
-    //     description: "Plugin ID (UUID or package_id)",
-    //     required: true,
-    // })
-    // @ApiResponse({
-    //     status: 200,
-    //     description: "Credentials retrieved successfully",
-    // })
-    // @Get()
-    // async listByPlugin(@Query("package_id") pluginId: string) {
-    //     const credentials =
-    //         await this.oauthClientsRepository.findByPluginId(pluginId);
-    //     return {
-    //         credentials: credentials.map((cred) => ({
-    //             id: cred.id,
-    //             package_id: cred.package_id,
-    //             provider: cred.provider,
-    //             client_id: cred.clientId,
-    //             scopes: cred.scopes,
-    //             extras: cred.extras,
-    //             is_active: cred.isActive,
-    //             created_at: cred.createdAt,
-    //             updated_at: cred.updatedAt,
-    //         })),
-    //     };
-    // }
-
     /**
      * List OAuth credentials by developer.
      */

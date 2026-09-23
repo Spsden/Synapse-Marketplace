@@ -155,21 +155,15 @@ export class McpRegistryService {
       tools: [...dto.tools],
       runtimeTargets: [...dto.runtimeTargets],
       platforms: [...dto.platforms],
-      desktop: dto.desktop ?? null,
-      cloud: dto.cloud ?? null,
       capabilities: dto.capabilities ?? null,
-      schemaVersion: dto.schemaVersion ?? 1,
+      schemaVersion: 2,
       upstream: dto.upstream ?? null,
       upstreamHash: dto.upstreamHash ?? null,
       authProfiles: dto.authProfiles?.map((profile) => ({ ...profile })) ?? [],
-      artifacts: dto.artifacts?.map((artifact) => ({ ...artifact })) ?? [],
-      deployments: dto.deployments
-        ? dto.deployments.map((deployment) => ({ ...deployment }))
-        : this.buildLegacyDeployments(dto),
+      deployments: dto.deployments!.map((deployment) => ({ ...deployment })),
       capabilityCatalog: dto.capabilityCatalog ?? {
         tools: [...dto.tools],
       },
-      cloudCertification: dto.cloudCertification ?? null,
       submissionNotes: dto.submissionNotes ?? null,
       createdBy: dto.createdBy,
     };
@@ -315,35 +309,11 @@ export class McpRegistryService {
   }
 
   private validateServerDefinition(dto: SubmitMcpRegistryServerRequestDto): void {
-    if ((dto.schemaVersion ?? 1) !== 2) {
-      return;
-    }
-
     if (!dto.deployments?.length) {
       throw new PluginStoreException(
         'MCP registry schema v2 requires at least one deployment.',
         HttpStatus.BAD_REQUEST,
       );
-    }
-
-    const artifactIds = new Set<string>();
-    for (const [index, artifact] of (dto.artifacts ?? []).entries()) {
-      const id = artifact.id;
-      if (artifactIds.has(id)) {
-        throw new PluginStoreException(
-          `Duplicate MCP artifact id "${id}".`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      artifactIds.add(id);
-
-      const runtime = artifact.runtime;
-      if (runtime !== 'node') {
-        throw new PluginStoreException(
-          `Unsupported MCP artifact runtime "${runtime}". Only Node artifacts are accepted.`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
     }
 
     const deploymentIds = new Set<string>();
@@ -358,98 +328,28 @@ export class McpRegistryService {
       }
       deploymentIds.add(id);
 
-      const kind = deployment.kind;
-      const supportedKinds = [
-        'remote-http',
-        'node-stdio',
-        'synapse-cloud-node',
-      ];
-      if (!supportedKinds.includes(kind)) {
+      const url = deployment.url;
+      if (!url.startsWith('https://')) {
         throw new PluginStoreException(
-          `Unsupported Marketplace deployment kind "${kind}".`,
+          `${path}.url must use HTTPS.`,
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      if (kind === 'remote-http') {
-        const url = deployment.url;
-        if (!url) {
-          throw new PluginStoreException(
-            `${path}.url is required.`,
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-        if (!url.startsWith('https://')) {
-          throw new PluginStoreException(
-            `${path}.url must use HTTPS.`,
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-      } else {
-        const artifactId = deployment.artifactId;
-        if (!artifactId) {
-          throw new PluginStoreException(
-            `${path}.artifactId is required.`,
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-        if (!artifactIds.has(artifactId)) {
-          throw new PluginStoreException(
-            `${path} references unknown artifact "${artifactId}".`,
-            HttpStatus.BAD_REQUEST,
-          );
-        }
+      const authProfileId = deployment.authProfileId;
+      if (authProfileId && !this.hasAuthProfile(dto, authProfileId)) {
+        throw new PluginStoreException(
+          `${path} references unknown auth profile "${authProfileId}".`,
+          HttpStatus.BAD_REQUEST,
+        );
       }
     }
   }
 
-  private buildLegacyDeployments(
+  private hasAuthProfile(
     dto: SubmitMcpRegistryServerRequestDto,
-  ): Record<string, unknown>[] {
-    const deployments: Record<string, unknown>[] = [];
-    const sourceType = dto.source?.type;
-    const sourceUrl = dto.source?.url;
-
-    if (
-      sourceType === 'remote-http' &&
-      typeof sourceUrl === 'string' &&
-      sourceUrl.startsWith('https://')
-    ) {
-      deployments.push({
-        id: 'provider-remote',
-        kind: 'remote-http',
-        runtimeTarget: 'provider-remote',
-        transport: 'streamable-http',
-        url: sourceUrl,
-        platforms: [...dto.platforms],
-        priority: 10,
-      });
-    }
-
-    if (dto.desktop) {
-      deployments.push({
-        id: 'desktop-node',
-        kind: 'node-stdio',
-        runtimeTarget: 'desktop-node',
-        platforms: dto.platforms.filter((platform) =>
-          ['macos', 'windows', 'linux'].includes(platform),
-        ),
-        config: dto.desktop,
-        priority: 20,
-      });
-    }
-
-    if (dto.cloud) {
-      deployments.push({
-        id: 'legacy-cloud',
-        kind: 'legacy-cloud-worker',
-        runtimeTarget: 'cloud-worker',
-        platforms: [...dto.platforms],
-        config: dto.cloud,
-        priority: 30,
-      });
-    }
-
-    return deployments;
+    authProfileId: string,
+  ): boolean {
+    return (dto.authProfiles ?? []).some((profile) => profile.id === authProfileId);
   }
 }

@@ -59,33 +59,6 @@ export class PluginVersionsRepository {
   }
 
   /**
-   * Check if a version exists for the given plugin.
-   */
-  async existsByPluginIdAndVersion(pluginId: string, version: string): Promise<boolean> {
-    const { data, error } = await this.supabase
-      .from('plugin_versions')
-      .select('id')
-      .eq('plugin_id', pluginId)
-      .eq('version', version)
-      .single();
-
-    return !error && !!data;
-  }
-
-  /**
-   * Find all versions with a specific status.
-   */
-  async findByStatus(status: VersionStatus): Promise<PluginVersion[]> {
-    const { data } = await this.supabase
-      .from('plugin_versions')
-      .select('*')
-      .eq('status', status)
-      .order('created_at', { ascending: true });
-
-    return (data || []).map((item) => this.mapToEntity(item));
-  }
-
-  /**
    * Find versions in the review queue (SUBMITTED or PENDING_REVIEW).
    */
   async findVersionsInReviewQueue(): Promise<PluginVersion[]> {
@@ -136,19 +109,6 @@ export class PluginVersionsRepository {
   }
 
   /**
-   * Find flagged versions for security review.
-   */
-  async findFlaggedVersions(): Promise<PluginVersion[]> {
-    const { data } = await this.supabase
-      .from('plugin_versions')
-      .select('*')
-      .eq('is_flagged', true)
-      .order('created_at', { ascending: false });
-
-    return (data || []).map((item) => this.mapToEntity(item));
-  }
-
-  /**
    * Count versions by status for a plugin.
    */
   async countByPluginIdAndStatus(
@@ -188,6 +148,12 @@ export class PluginVersionsRepository {
       download_count: 0,
       is_flagged: false,
       created_at: new Date().toISOString(),
+      source_provider: dto.source?.provider || null,
+      source_repository: dto.source?.repository || null,
+      source_commit_sha: dto.source?.commitSha || null,
+      source_path: dto.source?.path || null,
+      source_blob_shas: dto.source?.blobShas || null,
+      upstream: dto.source?.upstream || null,
     };
 
     const { data, error } = await this.supabase
@@ -316,6 +282,16 @@ export class PluginVersionsRepository {
       downloadCount: data.download_count || 0,
       isFlagged: data.is_flagged || false,
       flagReason: data.flag_reason,
+      source: data.source_commit_sha
+        ? {
+            provider: data.source_provider,
+            repository: data.source_repository,
+            commitSha: data.source_commit_sha,
+            path: data.source_path,
+            blobShas: data.source_blob_shas || {},
+            upstream: data.upstream || {},
+          }
+        : null,
     };
   }
 }

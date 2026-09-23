@@ -26,18 +26,13 @@ the Synapse policy. See
 The importer currently supports:
 
 - Streamable HTTP and SSE remotes over HTTPS
-- npm packages using stdio
-- fixed package arguments and environment defaults
-- required environment secrets mapped through
-  `authProfiles[].config.environmentVariables`
 
 It deliberately rejects:
 
-- PyPI, `uvx`, and other Python execution
+- any upstream server that declares no HTTPS remote, including PyPI, `uvx`,
+  npm, and other local execution packages
 - arbitrary shell commands
-- unresolved required package arguments
-- secret values supplied directly in URL, header, argument, or package inputs
-- unpinned or uncertified cloud Node artifacts
+- secret values supplied directly in a URL, header, or remote variable
 - non-HTTPS remote transports
 
 The result enters the normal review queue. Importing never publishes directly;

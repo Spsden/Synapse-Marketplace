@@ -168,88 +168,6 @@ export class VaultService {
     }
 
     /**
-     * Encrypts an object by first serializing it to JSON.
-     *
-     * @param data - The object to encrypt
-     * @returns Base64 encoded encrypted string
-     *
-     * @example
-     * ```typescript
-     * const encrypted = await vaultService.encryptObject({
-     *   accessToken: 'xxx',
-     *   refreshToken: 'yyy'
-     * });
-     * ```
-     */
-    async encryptObject<T>(data: T): Promise<string> {
-        const json = JSON.stringify(data);
-        return this.encrypt(json);
-    }
-
-    /**
-     * Decrypts data and parses it as JSON.
-     *
-     * @param encryptedData - The encrypted JSON string
-     * @returns The parsed object
-     *
-     * @example
-     * ```typescript
-     * const tokens = await vaultService.decryptObject<Tokens>(encryptedData);
-     * ```
-     */
-    async decryptObject<T>(encryptedData: string): Promise<T> {
-        const json = await this.decrypt(encryptedData);
-        return JSON.parse(json) as T;
-    }
-
-    /**
-     * Hashes data using SHA-256 for one-way transformations.
-     * Useful for creating deterministic identifiers from sensitive data.
-     *
-     * @param data - The data to hash
-     * @returns Hex-encoded SHA-256 hash
-     *
-     * @example
-     * ```typescript
-     * const fingerprint = vaultService.hash('user@example.com');
-     * ```
-     */
-    hash(data: string): string {
-        const { createHash } = require("crypto");
-        return createHash("sha256").update(data).digest("hex");
-    }
-
-    /**
-     * Generates a cryptographically secure random string.
-     *
-     * @param length - The length of the random string in bytes
-     * @param encoding - The encoding to use (default: 'hex')
-     * @returns Random string
-     *
-     * @example
-     * ```typescript
-     * const state = vaultService.generateRandom(32); // 64-char hex string
-     * const codeVerifier = vaultService.generateRandom(32, 'base64url');
-     * ```
-     */
-    generateRandom(
-        length: number,
-        encoding: "hex" | "base64url" = "hex",
-    ): string {
-        const bytes = randomBytes(length);
-
-        if (encoding === "base64url") {
-            return bytes
-                .toString("base64")
-                .replace(/\+/g, "-")
-                .replace(/\//g, "_")
-                .replace(/=/g, "");
-        }
-
-        return bytes.toString("hex");
-    }
-
-    /**
      * Derives a fixed-length encryption key from the environment variable.
      * Uses PBKDF2 for key derivation with 100,000 iterations.
      *
@@ -270,19 +188,5 @@ export class VaultService {
             this.config.keyLength,
             "sha256",
         );
-    }
-
-    /**
-     * Validates if a string appears to be properly encrypted data.
-     *
-     * @param data - The data to validate
-     * @returns True if the data format matches our encryption output
-     */
-    isEncrypted(data: string): boolean {
-        if (!data || typeof data !== "string") {
-            return false;
-        }
-        const parts = data.split(".");
-        return parts.length === 3 && parts.every((part) => part.length > 0);
     }
 }

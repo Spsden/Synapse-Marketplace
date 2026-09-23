@@ -4,7 +4,7 @@ export * from './plugin-version-response.dto';
 export * from './plugin-statistics-response.dto';
 export * from './plugin-review-item.dto';
 export * from './review-decision-request.dto';
-export * from './submit-plugin-request.dto';
+export * from './ingest-plugins-request.dto';
 export * from './submit-mcp-registry-server-request.dto';
 export * from './import-official-mcp-server-request.dto';
 export * from './review-mcp-registry-submission-request.dto';

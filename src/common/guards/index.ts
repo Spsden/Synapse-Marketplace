@@ -1,4 +1,4 @@
 /**
  * Common guards for the application.
  */
-export * from './public.guard';
+export * from './marketplace-api-token.guard';

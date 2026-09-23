@@ -33,12 +33,7 @@ export class McpAuthProfileRequestDto {
 
   @IsOptional()
   @IsString()
-  @IsIn([
-    'authorization-header',
-    'environment',
-    'ephemeral-file',
-    'mcp-protocol',
-  ])
+  @IsIn(['authorization-header', 'mcp-protocol'])
   delivery?: string;
 
   @IsOptional()
@@ -46,42 +41,25 @@ export class McpAuthProfileRequestDto {
   config?: Record<string, unknown>;
 }
 
-export class McpArtifactRequestDto {
-  @IsString()
-  @IsNotEmpty()
-  id: string;
-
-  @IsString()
-  @IsIn(['node'])
-  runtime: string;
-
-  @IsObject()
-  source: Record<string, unknown>;
-
-  @IsOptional()
-  @IsString()
-  digest?: string;
-
-  @IsOptional()
-  @IsString()
-  entrypoint?: string;
-
-  @IsOptional()
-  @IsString()
-  nodeVersion?: string;
-}
-
+/**
+ * A deployment of a hosted MCP server.
+ *
+ * Synapse supports provider-hosted remote servers only, so every deployment is
+ * an HTTPS remote reached by the runtime over Streamable HTTP (SSE retained as a
+ * compatibility transport). There is no local execution: no npm artifacts, no
+ * stdio entrypoints, no Synapse-hosted Node workers.
+ */
 export class McpDeploymentRequestDto {
   @IsString()
   @IsNotEmpty()
   id: string;
 
   @IsString()
-  @IsIn(['remote-http', 'node-stdio', 'synapse-cloud-node'])
+  @IsIn(['remote-http'])
   kind: string;
 
   @IsString()
-  @IsIn(['provider-remote', 'desktop-node', 'synapse-cloud-node'])
+  @IsIn(['provider-remote'])
   runtimeTarget: string;
 
   @IsArray()
@@ -102,48 +80,24 @@ export class McpDeploymentRequestDto {
   @IsIn(['streamable-http', 'sse'])
   transport?: string;
 
-  @IsOptional()
   @IsUrl({ require_protocol: true, protocols: ['https'] })
-  url?: string;
+  url: string;
 
   @IsOptional()
   @IsObject()
   headers?: Record<string, string>;
-
-  @IsOptional()
-  @IsString()
-  artifactId?: string;
-
-  @IsOptional()
-  @IsObject()
-  install?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsString()
-  entrypoint?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  args?: string[];
-
-  @IsOptional()
-  @IsObject()
-  env?: Record<string, string>;
-
-  @IsOptional()
-  @IsUrl({ require_protocol: true, protocols: ['https'] })
-  gatewayUrl?: string;
 }
 
 export class SubmitMcpRegistryServerRequestDto {
   @ApiPropertyOptional({
     example: 2,
-    description: 'Synapse MCP catalog schema version. Omitted legacy submissions use version 1.',
+    description:
+      'Synapse MCP catalog schema version. Only version 2 is accepted; ' +
+      'legacy version 1 described locally executed servers, which Synapse no longer supports.',
   })
   @IsOptional()
   @IsInt()
-  @IsIn([1, 2])
+  @IsIn([2])
   schemaVersion?: number;
 
   @ApiProperty({
@@ -226,7 +180,7 @@ export class SubmitMcpRegistryServerRequestDto {
 
   @ApiProperty({
     type: [String],
-    example: ['desktop-node', 'cloud-worker'],
+    example: ['provider-remote'],
   })
   @IsArray()
   @ArrayMinSize(1)
@@ -245,21 +199,7 @@ export class SubmitMcpRegistryServerRequestDto {
   platforms: string[];
 
   @ApiPropertyOptional({
-    description: 'Desktop execution details such as install strategy and entrypoint.',
-  })
-  @IsOptional()
-  @IsObject()
-  desktop?: Record<string, unknown>;
-
-  @ApiPropertyOptional({
-    description: 'Cloud runtime metadata for Worker/hosted execution.',
-  })
-  @IsOptional()
-  @IsObject()
-  cloud?: Record<string, unknown>;
-
-  @ApiPropertyOptional({
-    description: 'Extra capability metadata such as OS permissions or app dependencies.',
+    description: 'Extra capability metadata such as app dependencies.',
   })
   @IsOptional()
   @IsObject()
@@ -292,17 +232,6 @@ export class SubmitMcpRegistryServerRequestDto {
   authProfiles?: McpAuthProfileRequestDto[];
 
   @ApiPropertyOptional({
-    description: 'Immutable reviewed artifacts built from npm, GitHub, OCI, or Synapse sources.',
-    type: [Object],
-  })
-  @IsOptional()
-  @IsArray()
-  @ArrayMaxSize(50)
-  @ValidateNested({ each: true })
-  @Type(() => McpArtifactRequestDto)
-  artifacts?: McpArtifactRequestDto[];
-
-  @ApiPropertyOptional({
     description: 'Platform-specific execution variants for this logical MCP server.',
     type: [Object],
   })
@@ -319,13 +248,6 @@ export class SubmitMcpRegistryServerRequestDto {
   @IsOptional()
   @IsObject()
   capabilityCatalog?: Record<string, unknown>;
-
-  @ApiPropertyOptional({
-    description: 'Cloud Node certification evidence and policy.',
-  })
-  @IsOptional()
-  @IsObject()
-  cloudCertification?: Record<string, unknown>;
 
   @ApiPropertyOptional()
   @IsOptional()
